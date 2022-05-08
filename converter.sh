@@ -939,7 +939,8 @@ jq '
     ("minecraft:" + .value.item): [
       {
         "name": .key,
-        "allow_offhand": true
+        "allow_offhand": true,
+        "icon": .value.item
       }
       + (if .value.nbt.CustomModelData then {"custom_model_data": (.value.nbt.CustomModelData)} else {} end)
       + (if .value.nbt.Damage then {"damage_predicate": (.value.nbt.Damage)} else {} end)
