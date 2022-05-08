@@ -168,7 +168,7 @@ if contains(":") then sub("\\:(.+)"; "") else "minecraft" end
 
 [.[] | to_entries | map( select((.value.predicate.damage != null) or (.value.predicate.damaged != null)  or (.value.predicate.custom_model_data != null)) |
       (if .value.predicate.damage then (.value.predicate.damage * maxdur(.key) | round) else null end) as $damage
-    | (if .value.predicate.damaged == 0 then 1 else null end) as $unbreakable
+    | (if .value.predicate.damaged == 0 then true else null end) as $unbreakable
     | (if .value.predicate.custom_model_data then .value.predicate.custom_model_data else null end) as $custom_model_data |
   {
     "item": .key,
@@ -922,9 +922,26 @@ status_message critical "Deleting scratch files"
 
 status_message critical "Deleting unused entries from config"
 # jq 'map_values(del(.path, .element_parent, .parent, .geyserID))' config.json | sponge config.json
-status_message process "Moving config to target directory"
-# mv config.json ./target/config.json
+status_message process "Creating Geyser mappings in target directory"
 echo
+jq '
+to_entries | map(
+  {
+    ("minecraft:" + .value.item): [
+      {
+        "name": .key,
+        "allow_offhand": true
+      }
+      + (if .value.nbt.CustomModelData then {"custom_model_data": (.value.nbt.CustomModelData)} else {} end)
+      + (if .value.nbt.Damage then {"damage_predicate": (.value.nbt.Damage)} else {} end)
+      + (if .value.nbt.Unbreakable then {"damage_predicate": (.value.nbt.Unbreakable)} else {} end)
+    ]
+  }
+) 
+| map(to_entries[])
+| group_by(.key)[] 
+| {(.[0].key) : map(.value) | add}
+' config.json | sponge ./target/geyser_mappings.json
 
 status_message process "Compressing output packs"
 mkdir ./target/packaged
