@@ -8,6 +8,8 @@ To run without settings prompts and use the defaults:
 ./converter.sh MyResourcePack.zip default
 ```
 
+**NOTICE:** Due to [MCPE-152191](https://bugs.mojang.com/browse/MCPE-152191), a [resource pack](https://bugs.mojang.com/secure/attachment/473588/473588_BlockGeoFi.mcpack) with a min engine version before 1.18 must be applied above the resource pack containing the block models in order for them to render properly.
+
 ## About
 The script has been updated to handle parent models and 2D items. It will generate a single sprite sheet for all textures used in 3D models, and copy over textures for 2D items individually.
 
