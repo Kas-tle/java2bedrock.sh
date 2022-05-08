@@ -934,7 +934,7 @@ rm -rf assets && rm -f pack.mcmeta && rm -f pack.png && rm -f parents.json && rm
 status_message process "Creating Geyser mappings in target directory"
 echo
 jq '
-to_entries | map(
+([to_entries | map(
   {
     ("minecraft:" + .value.item): [
       {
@@ -949,7 +949,11 @@ to_entries | map(
 ) 
 | map(to_entries[])
 | group_by(.key)[] 
-| {(.[0].key) : map(.value) | add}
+| {(.[0].key) : map(.value) | add}] | add) as $mappings
+| {
+    "format_version": "1.0.0",
+    "items": $mappings
+  }
 ' config.json | sponge ./target/geyser_mappings.json
 
 status_message process "Compressing output packs"
