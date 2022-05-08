@@ -106,44 +106,6 @@ status_message process "Decompressing input pack"
 unzip -q ${1}
 status_message completion "Input pack decompressed"
 
-# get the current default textures and merge them with our rp
-if [[ ${fallback_pack} != none ]]
-then
-   status_message process "Now downloading the fallback resource pack:"
-fi
-
-if [[ ${fallback_pack} = null ]]
-then
-  printf "\e[3m\e[37m"
-  wget -nv --show-progress -O default_assets.zip https://github.com/InventivetalentDev/minecraft-assets/zipball/refs/tags/1.18.2
-  printf "${C_CLOSE}"
-  status_message completion "Fallback resources downloaded"
-  root_folder=($(unzip -Z -1 default_assets.zip | head -1))
-fi
-
-if [[ ${fallback_pack} != null &&  ${fallback_pack} != none ]]
-then
-  printf "\e[3m\e[37m"
-  wget -nv --show-progress -O default_assets.zip "${fallback_pack}"
-  status_message completion "Fallback resources downloaded"
-  root_folder=""
-fi
-
-if [[ ${fallback_pack} != none ]]
-then
-  mkdir ./defaultassetholding
-  unzip -q -d ./defaultassetholding default_assets.zip "${root_folder}assets/minecraft/textures/**/*"
-  status_message completion "Fallback resources decompressed"
-  cp -n -r "./defaultassetholding/${root_folder}assets/minecraft/textures"/* './assets/minecraft/textures/'
-  status_message completion "Fallback resources merged with target pack"
-  rm -rf defaultassetholding
-  rm -f default_assets.zip
-  status_message critical "Extraneous fallback resources deleted\n"
-fi
-
-# generate a fallback texture
-convert -size 16x16 xc:\#FFFFFF ./assets/minecraft/textures/0.png
-
 # setup our initial config
 status_message process "Iterating through all vanilla associated model JSONs to generate initial predicate config\nOn a large pack, this may take some time...\n"
 
@@ -215,11 +177,12 @@ if contains(":") then sub("\\:(.+)"; "") else "minecraft" end
         "Unbreakable": $unbreakable,
         "CustomModelData": $custom_model_data
       }),
-    "path": ("./assets/" + (.value.model | namespace) + "/models/" + (.value.model | sub("(.*?)\\:"; "")) + ".json")
+    "path": ("./assets/" + (.value.model | namespace) + "/models/" + (.value.model | sub("(.*?)\\:"; "")) + ".json"),
+    "generated": "false"
 
 }) | .[]]
 | walk(if type == "object" then with_entries(select(.value != null)) else . end)
-| to_entries | map( ((.value.geyserID = "gmdl_\(1+.key)" | .value.geometry = ("geometry.geysercmd." + "gmdl_\(1+.key)")) | .value))
+| to_entries | map( ((.value.geyserID = "gmdl_\(1+.key)" | .value.geometry = ("geometry.geyser_custom." + "gmdl_\(1+.key)")) | .value))
 | INDEX(.geyserID)
 
 ' ${confarg1} ${confarg2} | sponge config.json
@@ -267,7 +230,21 @@ jq -s '
 def intest($input_i): ($global | .[0] | map({(.path): .parent}) | add | .[$input_i]? // null);
 
 def gtest($input_g):
-["./assets/minecraft/models/block/block.json", "./assets/minecraft/models/block/cube.json", "./assets/minecraft/models/block/cube_column.json", "./assets/minecraft/models/block/cube_directional.json", "./assets/minecraft/models/block/cube_mirrored.json", "./assets/minecraft/models/block/observer.json", "./assets/minecraft/models/block/orientable_with_bottom.json", "./assets/minecraft/models/block/piston_extended.json", "./assets/minecraft/models/block/redstone_dust_side.json", "./assets/minecraft/models/block/redstone_dust_side_alt.json", "./assets/minecraft/models/block/template_single_face.json", "./assets/minecraft/models/block/thin_block.json", "./assets/minecraft/models/builtin/entity.json", "./assets/minecraft/models/builtin/generated.json", "./assets/minecraft/models/item/bow.json", "./assets/minecraft/models/item/chest.json", "./assets/minecraft/models/item/crossbow.json", "./assets/minecraft/models/item/fishing_rod.json", "./assets/minecraft/models/item/generated.json", "./assets/minecraft/models/item/handheld.json", "./assets/minecraft/models/item/handheld_rod.json", "./assets/minecraft/models/item/template_skull.json"]
+[ 
+  "./assets/minecraft/models/block/block.json", 
+  "./assets/minecraft/models/block/cube.json", 
+  "./assets/minecraft/models/block/cube_column.json", 
+  "./assets/minecraft/models/block/cube_directional.json", 
+  "./assets/minecraft/models/block/cube_mirrored.json", 
+  "./assets/minecraft/models/block/observer.json", 
+  "./assets/minecraft/models/block/orientable_with_bottom.json", 
+  "./assets/minecraft/models/block/piston_extended.json", 
+  "./assets/minecraft/models/block/redstone_dust_side.json", 
+  "./assets/minecraft/models/block/redstone_dust_side_alt.json", 
+  "./assets/minecraft/models/block/template_single_face.json", 
+  "./assets/minecraft/models/block/thin_block.json", 
+  "./assets/minecraft/models/builtin/entity.json"
+]
 | index($input_g) // null;
 
 .[1] | map_values(. + ({"parent": (intest(.path) // null)} | if gtest(.parent) == null then . else empty end))
@@ -278,7 +255,7 @@ def gtest($input_g):
 
 # create our initial directories for bp & rp
 status_message process "Generating initial directory strucutre for our bedrock packs"
-mkdir -p ./target/rp/models/blocks/geysercmd && mkdir -p ./target/rp/textures/blocks/geysercmd && mkdir -p ./target/rp/attachables/geysercmd && mkdir -p ./target/rp/animations/geysercmd && mkdir -p ./target/bp/blocks/geysercmd
+mkdir -p ./target/rp/models/geyser_custom && mkdir -p ./target/rp/textures/geyser/geyser_custom && mkdir -p ./target/rp/attachables/geyser_custom && mkdir -p ./target/rp/animations/geyser_custom && mkdir -p ./target/bp/blocks/geyser_custom && mkdir -p ./target/bp/items/geyser_custom
 
 # copy over our pack.png if we have one
 if test -f "./pack.png"; then
@@ -304,7 +281,7 @@ jq -c --arg pack_desc "${pack_desc}" --arg uuid1 "${uuid1}" --arg uuid2 "${uuid2
         "name": $pack_desc,
         "uuid": ($uuid1 | ascii_downcase),
         "version": [1, 0, 0],
-        "min_engine_version": [1, 16, 100]
+        "min_engine_version": [1, 18, 30]
     },
     "modules": [
         {
@@ -356,11 +333,21 @@ jq -nc '
   "num_mip_levels": 4,
   "texture_data": {
     "gmdl_atlas": {
-      "textures": "textures/blocks/geysercmd/gmdl_atlas"
+      "textures": "textures/geyser/geyser_custom/gmdl_atlas"
       }
   }
 }
 ' | sponge ./target/rp/textures/terrain_texture.json
+
+# generate rp item_texture.json
+status_message process "Generating resource pack item texture definition"
+jq -nc '
+{
+  "resource_pack_name": "vanilla",
+  "texture_name": "atlas.items",
+  "texture_data": {}
+}
+' | sponge ./target/rp/textures/item_texture.json
 
 status_message process "Generating resource pack disabling animation"
 # generate our disabling animation
@@ -368,18 +355,60 @@ jq -nc '
 {
   "format_version": "1.8.0",
   "animations": {
-    "animation.geysercmd.disable": {
+    "animation.geyser_custom.disable": {
       "loop": true,
       "override_previous_animation": true,
       "bones": {
-        "geysercmd": {
+        "geyser_custom": {
           "scale": 0
         }
       }
     }
   }
 }
-' | sponge ./target/rp/animations/geysercmd/animation.geysercmd.disable.json
+' | sponge ./target/rp/animations/geyser_custom/animation.geyser_custom.disable.json
+
+# DO DEFAULT ASSETS HERE!!
+# get the current default textures and merge them with our rp
+if [[ ${fallback_pack} != none ]]
+then
+   status_message process "Now downloading the fallback resource pack:"
+fi
+
+if [[ ${fallback_pack} = null ]]
+then
+  printf "\e[3m\e[37m"
+  wget -nv --show-progress -O default_assets.zip https://github.com/InventivetalentDev/minecraft-assets/zipball/refs/tags/1.18.2
+  printf "${C_CLOSE}"
+  status_message completion "Fallback resources downloaded"
+  root_folder=($(unzip -Z -1 default_assets.zip | head -1))
+fi
+
+if [[ ${fallback_pack} != null &&  ${fallback_pack} != none ]]
+then
+  printf "\e[3m\e[37m"
+  wget -nv --show-progress -O default_assets.zip "${fallback_pack}"
+  status_message completion "Fallback resources downloaded"
+  root_folder=""
+fi
+
+if [[ ${fallback_pack} != none ]]
+then
+  mkdir ./defaultassetholding
+  unzip -q -d ./defaultassetholding default_assets.zip "${root_folder}assets/minecraft/textures/**/*"
+  unzip -q -d ./defaultassetholding default_assets.zip "${root_folder}assets/minecraft/models/**/*"
+  status_message completion "Fallback resources decompressed"
+  cp -n -r "./defaultassetholding/${root_folder}assets/minecraft/textures"/* './assets/minecraft/textures/'
+  cp -n -r "./defaultassetholding/${root_folder}assets/minecraft/models"/* './assets/minecraft/models/'
+  status_message completion "Fallback resources merged with target pack"
+  rm -rf defaultassetholding
+  rm -f default_assets.zip
+  status_message critical "Extraneous fallback resources deleted\n"
+fi
+
+# generate a fallback texture
+convert -size 16x16 xc:\#FFFFFF ./assets/minecraft/textures/0.png
+
 status_message completion "Initial pack setup complete\n"
 
 jq -r '.[] | select(.parent != null) | [.path, .geyserID, .parent] | @tsv | gsub("\\t";",")' config.json | sponge pa.csv
@@ -408,22 +437,23 @@ do
   status_message process "Locating parental info for child model with GeyserID ${gid}"
 
   # itterate through parented models until they all have geometry, display, and textures
-  until [[ ${elements} != null && ${textures} != null && ${display} != null ]] || [[ ${parental} = null ]]
+  until [[ ${elements} != null && ${textures} != null && ${display} != null ]] || [[ ${parental} = "./assets/minecraft/models/builtin/generated.json" ]] || [[ ${parental} = null ]]
   do
     if [[ ${elements} = null ]]
     then
-      elements="$(jq -rc '.elements' ${parental} 2> /dev/null | tee elements.temp || echo && echo null)"
+      elements="$(jq -rc '.elements' ${parental} 2> /dev/null | tee elements.temp || (echo && echo null))"
       element_parent=${parental}
     fi
     if [[ ${textures} = null ]]
     then
-      textures="$(jq -rc '.textures' ${parental} 2> /dev/null | tee textures.temp || echo && echo null)"
+      textures="$(jq -rc '.textures' ${parental} 2> /dev/null | tee textures.temp || (echo && echo null))"
     fi
     if [[ ${display} = null ]]
     then
-      display="$(jq -rc '.display' ${parental} 2> /dev/null | tee display.temp || echo && echo null)"
+      display="$(jq -rc '.display' ${parental} 2> /dev/null | tee display.temp || (echo && echo null))"
     fi
-    parental="$(jq -rc 'def namespace: if contains(":") then sub("\\:(.+)"; "") else "minecraft" end; ("./assets/" + (.parent | namespace) + "/models/" + ((.parent? // empty) | sub("(.*?)\\:"; "")) + ".json") // "null"' ${parental} 2> /dev/null || echo && echo null)"
+    parental="$(jq -rc 'def namespace: if contains(":") then sub("\\:(.+)"; "") else "minecraft" end; ("./assets/" + (.parent? | namespace) + "/models/" + ((.parent? // empty) | sub("(.*?)\\:"; "")) + ".json") // "null"' ${parental} 2> /dev/null || (echo && echo null))"
+    texture_0="$(jq -rc 'def namespace: if contains(":") then sub("\\:(.+)"; "") else "minecraft" end; ("./assets/" + ([.[]][0]? | namespace) + "/textures/" + (([.[]][0]? // empty) | sub("(.*?)\\:"; "")) + ".png") // "null"' textures.temp)"
   done
 
   # if we can, generate a model now
@@ -435,7 +465,24 @@ do
       "elements": ($jelements[])
     } + (if $jdisplay then ({"display": ($jdisplay[])}) else {} end)
     ' | sponge ${file}
+    jq --arg gid "${gid}" '.[$gid].generated |= "false"' config.json | sponge config.json
     status_message completion "Located all parental info for Child ${gid}"
+    ProgressBar ${cur_pos} ${_end}
+    echo
+  # check if this is a 2d item dervived from ./assets/minecraft/models/builtin/generated
+  elif [[ ${textures} != null && ${parental} = "./assets/minecraft/models/builtin/generated.json" && -f "${texture_0}" ]]
+  then
+    jq -n --slurpfile jelements elements.temp --slurpfile jtextures textures.temp --slurpfile jdisplay display.temp '
+    {
+      "textures": ([$jtextures[]][0])
+    } + (if $jdisplay then ({"display": ($jdisplay[])}) else {} end)
+    ' | sponge ${file}
+    jq --arg gid "${gid}" '.[$gid].generated |= "true"' config.json | sponge config.json
+    # copy texture directly to the rp
+    cp "${texture_0}" "./target/rp/textures/geyser/geyser_custom/${gid}.png"
+    # add texture to item atlas
+    jq --arg gid "${gid}" '.texture_data += {($gid): {"textures": ("textures/geyser/geyser_custom/" + $gid)}}' ./target/rp/textures/item_texture.json | sponge ./target/rp/textures/item_texture.json
+    status_message completion "Located all parental info for 2D Child ${gid}"
     ProgressBar ${cur_pos} ${_end}
     echo
   # otherwise, remove it from our config
@@ -454,35 +501,37 @@ status_message process "Cropping animated textures"
 for i in $(find ./assets/**/textures -type f -name "*.mcmeta" | sed 's/\.mcmeta//'); do magick ${i} -background none -gravity North -extent "%[fx:h<w?h:w]x%[fx:h<w?h:w]" ${i}; done
 
 status_message process "Compiling final model list"
-# get our final model list from the config
-model_list=( $(jq -r '.[].path' config.json) )
+# get our final 3d model list from the config
+model_list=( $(jq -r '.[] | select(.generated == "false") | .path' config.json) )
 
-# get our final texture list
+# get our final texture list to be atlased
 # get a bash array of all texture files in our resource pack
 status_message process "Generating an array of all model PNG files to crosscheck with our atlas"
 jq -n '$ARGS.positional' --args $(find ./assets/**/textures -type f -name '*.png') | sponge textures1.temp
+# get bash array of all texture files listed in our models
 status_message process "Generating an array for the master texture atlas"
-jq -s 'def namespace: if contains(":") then sub("\\:(.+)"; "") else "minecraft" end; [.[].textures[]] | unique | map("./assets/" + (. | namespace) + "/textures/" + (. | sub("(.*?)\\:"; "")) + ".png")' ${model_list[@]} | sponge textures2.temp
+jq -s 'def namespace: if contains(":") then sub("\\:(.+)"; "") else "minecraft" end; [.[].textures[]?] | unique | map("./assets/" + (. | namespace) + "/textures/" + (. | sub("(.*?)\\:"; "")) + ".png")' ${model_list[@]} | sponge textures2.temp
+# find the union of all texture files listed in our models and all texture files in our resource pack
 texture_list=( $(jq -s -r '((.[1] - (.[1] - .[0])) + ["./assets/minecraft/textures/0.png"]) | .[]' textures1.temp textures2.temp) )
 
 # generate our atlas from the final texture list
 status_message process "Generating sprite sheet"
 spritesheet-js -f json --fullpath  ${texture_list[@]} > /dev/null 2>&1
 status_message completion "Sprite sheet successfully generated"
-mv spritesheet.png ./target/rp/textures/blocks/geysercmd/gmdl_atlas.png
+mv spritesheet.png ./target/rp/textures/geyser/geyser_custom/gmdl_atlas.png
 
 # begin conversion
-jq -r '.[] | [.path, .geyserID] | @tsv | gsub("\\t";",")' config.json | sponge all.csv
+jq -r '.[] | [.path, .geyserID, .generated] | @tsv | gsub("\\t";",")' config.json | sponge all.csv
 
-while IFS=, read -r file gid
+while IFS=, read -r file gid generated
 do
    convert_model () {
     local file=${1}
     local gid=${2}
+    local generated=${3}
 
     status_message process "Starting conversion of model with GeyserID ${gid}"
-
-    jq --slurpfile atlas spritesheet.json --arg binding "c.item_slot == 'head' ? 'head' : q.item_slot_to_bone_name(c.item_slot)" --arg model_name "${gid}" -c '
+    jq --slurpfile atlas spritesheet.json --arg generated "${generated}" --arg binding "c.item_slot == 'head' ? 'head' : q.item_slot_to_bone_name(c.item_slot)" --arg model_name "${gid}" -c '
     .textures as $texture_list |
 
     def namespace: if contains(":") then sub("\\:(.+)"; "") else "minecraft" end;
@@ -496,7 +545,7 @@ do
     def roundit: (.*10000 | round) / 10000;
 
     def element_array:
-        .elements | map({
+        if .elements then (.elements | map({
         "origin": [((-.to[0] + 8) | roundit), ((.from[1]) | roundit), ((.from[2] - 8) | roundit)],
         "size": [((.to[0] - .from[0]) | roundit), ((.to[1] - .from[1]) | roundit), ((.to[2] - .from[2]) | roundit)],
         "rotation": (if (.rotation.axis) == "x" then [(.rotation.angle | tonumber * -1), 0, 0] elif (.rotation.axis) == "y" then [0, (.rotation.angle | tonumber * -1), 0] elif (.rotation.axis) == "z" then [0, 0, (.rotation.angle | tonumber)] else null end),
@@ -523,29 +572,29 @@ do
           "up": uv_calc("up"),
           "down": uv_calc("down")
           })
-      }) | walk( if type == "object" then with_entries(select(.value != null)) else . end)
+      }) | walk( if type == "object" then with_entries(select(.value != null)) else . end)) else {} end
       ;
 
       def pivot_groups:
-      (element_array) as $element_array |
+      if .elements then ((element_array) as $element_array |
       [[.elements[].rotation] | unique | .[] | select (.!=null)]
       | map((
       [((- .origin[0] + 8) | roundit), (.origin[1] | roundit), ((.origin[2] - 8) | roundit)] as $i_piv |
       (if (.axis) == "x" then [(.angle | tonumber * -1), 0, 0] elif (.axis) == "y" then [0, (.angle | tonumber * -1), 0] else [0, 0, (.angle | tonumber)] end) as $i_rot |
       {
-        "parent": "geysercmd_z",
+        "parent": "geyser_custom_z",
         "pivot": ($i_piv),
         "rotation": ($i_rot),
         "mirror": true,
         "cubes": [($element_array | .[] | select(.rotation == $i_rot and .pivot == $i_piv))]
-      }))
+      }))) else {} end
       ;
 
       {
         "format_version": "1.16.0",
         "minecraft:geometry": [{
           "description": {
-            "identifier": ("geometry.geysercmd." + ($model_name)),
+            "identifier": ("geometry.geyser_custom." + ($model_name)),
             "texture_width": 16,
             "texture_height": 16,
             "visible_bounds_width": 4,
@@ -553,27 +602,32 @@ do
             "visible_bounds_offset": [0, 0.75, 0]
           },
           "bones": ([{
-            "name": "geysercmd",
+            "name": "geyser_custom",
             "binding": $binding,
             "pivot": [0, 8, 0]
           }, {
-            "name": "geysercmd_x",
-            "parent": "geysercmd",
+            "name": "geyser_custom_x",
+            "parent": "geyser_custom",
             "pivot": [0, 8, 0]
           }, {
-            "name": "geysercmd_y",
-            "parent": "geysercmd_x",
+            "name": "geyser_custom_y",
+            "parent": "geyser_custom_x",
             "pivot": [0, 8, 0]
-          }, {
-            "name": "geysercmd_z",
-            "parent": "geysercmd_y",
+          }, 
+            if $generated == "true" then ({
+            "name": "geyser_custom_z",
+            "parent": "geyser_custom_y",
             "pivot": [0, 8, 0],
-            "cubes": [(element_array | .[] | select(.rotation == null))]
-          }] + (pivot_groups | map(del(.cubes[].rotation)) | to_entries | map( (.value.name = "rot_\(1+.key)" ) | .value)))
+            "texture_meshes": ([{"texture": "default", "position": [0, 8, 0], "rotation": [90, 0, -180], "local_pivot": [8, 0.5, 16]}])
+          }) else ({
+            "name": "geyser_custom_z",
+            "parent": "geyser_custom_y",
+            "pivot": [0, 8, 0],
+            "cubes": ([(element_array | .[] | select(.rotation == null))])
+            }) end] + (pivot_groups | map(del(.cubes[].rotation)) | to_entries | map( (.value.name = "rot_\(1+.key)" ) | .value)))
         }]
       }
-
-      ' ${file} | sponge ./target/rp/models/blocks/geysercmd/${gid}.json
+      ' ${file} | sponge ./target/rp/models/geyser_custom/${gid}.json
 
       # generate our rp animations via display settings
       jq -c --arg model_name "${gid}" '
@@ -581,103 +635,103 @@ do
       {
         "format_version": "1.8.0",
         "animations": {
-          ("animation.geysercmd." + ($model_name) + ".thirdperson_main_hand"): {
+          ("animation.geyser_custom." + ($model_name) + ".thirdperson_main_hand"): {
             "loop": true,
             "bones": {
-              "geysercmd_x": (if .display.thirdperson_righthand then {
+              "geyser_custom_x": (if .display.thirdperson_righthand then {
                 "rotation": (if .display.thirdperson_righthand.rotation then [(- .display.thirdperson_righthand.rotation[0]), 0, 0] else null end),
                 "position": (if .display.thirdperson_righthand.translation then [(- .display.thirdperson_righthand.translation[0]), (.display.thirdperson_righthand.translation[1]), (.display.thirdperson_righthand.translation[2])] else null end),
                 "scale": (if .display.thirdperson_righthand.scale then [(.display.thirdperson_righthand.scale[0]), (.display.thirdperson_righthand.scale[1]), (.display.thirdperson_righthand.scale[2])] else null end)
               } else null end),
-              "geysercmd_y": (if .display.thirdperson_righthand.rotation then {
+              "geyser_custom_y": (if .display.thirdperson_righthand.rotation then {
                 "rotation": (if .display.thirdperson_righthand.rotation then [0, (- .display.thirdperson_righthand.rotation[1]), 0] else null end)
               } else null end),
-              "geysercmd_z": (if .display.thirdperson_righthand.rotation then {
+              "geyser_custom_z": (if .display.thirdperson_righthand.rotation then {
                 "rotation": [0, 0, (.display.thirdperson_righthand.rotation[2])]
               } else null end),
-              "geysercmd": {
+              "geyser_custom": {
                 "rotation": [90, 0, 0],
                 "position": [0, 13, -3]
               }
             }
           },
-          ("animation.geysercmd." + ($model_name) + ".thirdperson_off_hand"): {
+          ("animation.geyser_custom." + ($model_name) + ".thirdperson_off_hand"): {
             "loop": true,
             "bones": {
-              "geysercmd_x": (if .display.thirdperson_lefthand then {
+              "geyser_custom_x": (if .display.thirdperson_lefthand then {
                 "rotation": (if .display.thirdperson_lefthand.rotation then [(- .display.thirdperson_lefthand.rotation[0]), 0, 0] else null end),
                 "position": (if .display.thirdperson_lefthand.translation then [(- .display.thirdperson_lefthand.translation[0]), (.display.thirdperson_lefthand.translation[1]), (.display.thirdperson_lefthand.translation[2])] else null end),
                 "scale": (if .display.thirdperson_lefthand.scale then [(.display.thirdperson_lefthand.scale[0]), (.display.thirdperson_lefthand.scale[1]), (.display.thirdperson_lefthand.scale[2])] else null end)
               } else null end),
-              "geysercmd_y": (if .display.thirdperson_lefthand.rotation then {
+              "geyser_custom_y": (if .display.thirdperson_lefthand.rotation then {
                 "rotation": (if .display.thirdperson_lefthand.rotation then [0, (- .display.thirdperson_lefthand.rotation[1]), 0] else null end)
               } else null end),
-              "geysercmd_z": (if .display.thirdperson_lefthand.rotation then {
+              "geyser_custom_z": (if .display.thirdperson_lefthand.rotation then {
                 "rotation": [0, 0, (.display.thirdperson_lefthand.rotation[2])]
               } else null end),
-              "geysercmd": {
+              "geyser_custom": {
                 "rotation": [90, 0, 0],
                 "position": [0, 13, -3]
               }
             }
           },
-          ("animation.geysercmd." + ($model_name) + ".head"): {
+          ("animation.geyser_custom." + ($model_name) + ".head"): {
             "loop": true,
             "bones": {
-              "geysercmd_x": {
+              "geyser_custom_x": {
                 "rotation": (if .display.head.rotation then [(- .display.head.rotation[0]), 0, 0] else null end),
                 "position": (if .display.head.translation then [(- .display.head.translation[0] * 0.625), (.display.head.translation[1] * 0.625), (.display.head.translation[2] * 0.625)] else null end),
                 "scale": (if .display.head.scale then (.display.head.scale | map(. * 0.625)) else 0.625 end)
               },
-              "geysercmd_y": (if .display.head.rotation then {
+              "geyser_custom_y": (if .display.head.rotation then {
                 "rotation": [0, (- .display.head.rotation[1]), 0]
               } else null end),
-              "geysercmd_z": (if .display.head.rotation then {
+              "geyser_custom_z": (if .display.head.rotation then {
                 "rotation": [0, 0, (.display.head.rotation[2])]
               } else null end),
-              "geysercmd": {
+              "geyser_custom": {
                 "position": [0, 19.5, 0]
               }
             }
           },
-          ("animation.geysercmd." + ($model_name) + ".firstperson_main_hand"): {
+          ("animation.geyser_custom." + ($model_name) + ".firstperson_main_hand"): {
             "loop": true,
             "bones": {
-              "geysercmd": {
+              "geyser_custom": {
                 "rotation": [90, 60, -40],
                 "position": [4, 10, 4],
                 "scale": 1.5
               },
-              "geysercmd_x": {
+              "geyser_custom_x": {
                 "position": (if .display.firstperson_righthand.translation then [(- .display.firstperson_righthand.translation[0]), (.display.firstperson_righthand.translation[1]), (- .display.firstperson_righthand.translation[2])] else null end),
                 "rotation": (if .display.firstperson_righthand.rotation then [(- .display.firstperson_righthand.rotation[0]), 0, 0] else [0.1, 0.1, 0.1] end),
                 "scale": (if .display.firstperson_righthand.scale then (.display.firstperson_righthand.scale) else null end)
               },
-              "geysercmd_y": (if .display.firstperson_righthand.rotation then {
+              "geyser_custom_y": (if .display.firstperson_righthand.rotation then {
                 "rotation": [0, (- .display.firstperson_righthand.rotation[1]), 0]
               } else null end),
-              "geysercmd_z": (if .display.firstperson_righthand.rotation then {
+              "geyser_custom_z": (if .display.firstperson_righthand.rotation then {
                 "rotation": [0, 0, (.display.firstperson_righthand.rotation[2])]
               } else null end)
             }
           },
-          ("animation.geysercmd." + ($model_name) + ".firstperson_off_hand"): {
+          ("animation.geyser_custom." + ($model_name) + ".firstperson_off_hand"): {
             "loop": true,
             "bones": {
-              "geysercmd": {
+              "geyser_custom": {
                 "rotation": [90, 60, -40],
                 "position": [4, 10, 4],
                 "scale": 1.5
               },
-              "geysercmd_x": {
+              "geyser_custom_x": {
                 "position": (if .display.firstperson_lefthand.translation then [(.display.firstperson_lefthand.translation[0]), (.display.firstperson_lefthand.translation[1]), (- .display.firstperson_lefthand.translation[2])] else null end),
                 "rotation": (if .display.firstperson_lefthand.rotation then [(- .display.firstperson_lefthand.rotation[0]), 0, 0] else [0.1, 0.1, 0.1] end),
                 "scale": (if .display.firstperson_lefthand.scale then (.display.firstperson_lefthand.scale) else null end)
               },
-              "geysercmd_y": (if .display.firstperson_lefthand.rotation then {
+              "geyser_custom_y": (if .display.firstperson_lefthand.rotation then {
                 "rotation": [0, (- .display.firstperson_lefthand.rotation[1]), 0]
               } else null end),
-              "geysercmd_z": (if .display.firstperson_lefthand.rotation then {
+              "geyser_custom_z": (if .display.firstperson_lefthand.rotation then {
                 "rotation": [0, 0, (.display.firstperson_lefthand.rotation[2])]
               } else null end)
             }
@@ -685,26 +739,26 @@ do
         }
       } | walk( if type == "object" then with_entries(select(.value != null)) else . end)
 
-      ' ${file} | sponge ./target/rp/animations/geysercmd/animation.${gid}.json
+      ' ${file} | sponge ./target/rp/animations/geyser_custom/animation.${gid}.json
 
       # generate our rp attachable definition
-      jq -c -n --arg attachable_material "${attachable_material}" --arg v_main "v.main_hand = c.item_slot == 'main_hand';" --arg v_off "v.off_hand = c.item_slot == 'off_hand';" --arg v_head "v.head = c.item_slot == 'head';" --arg model_name "${gid}" --arg texture_name "${texture_id}" '
+      jq -c -n --arg generated "${generated}" --arg attachable_material "${attachable_material}" --arg v_main "v.main_hand = c.item_slot == 'main_hand';" --arg v_off "v.off_hand = c.item_slot == 'off_hand';" --arg v_head "v.head = c.item_slot == 'head';" --arg model_name "${gid}" '
 
       {
         "format_version": "1.10.0",
         "minecraft:attachable": {
           "description": {
-            "identifier": ("geysercmd:" + $model_name),
+            "identifier": ("geyser_custom:" + $model_name),
             "materials": {
               "default": $attachable_material,
               "enchanted": $attachable_material
             },
             "textures": {
-              "default": "textures/blocks/geysercmd/gmdl_atlas",
+              "default": (if $generated == "true" then ("textures/geyser/geyser_custom/" + $model_name) else "textures/geyser/geyser_custom/gmdl_atlas" end),
               "enchanted": "textures/misc/enchanted_item_glint"
             },
             "geometry": {
-              "default": ("geometry.geysercmd." + $model_name)
+              "default": ("geometry.geyser_custom." + $model_name)
             },
             "scripts": {
               "pre_animation": [$v_main, $v_off, $v_head],
@@ -718,60 +772,74 @@ do
               ]
             },
             "animations": {
-              "thirdperson_main_hand": ("animation.geysercmd." + $model_name + ".thirdperson_main_hand"),
-              "thirdperson_off_hand": ("animation.geysercmd." + $model_name + ".thirdperson_off_hand"),
-              "thirdperson_head": ("animation.geysercmd." + $model_name + ".head"),
-              "firstperson_main_hand": ("animation.geysercmd." + $model_name + ".firstperson_main_hand"),
-              "firstperson_off_hand": ("animation.geysercmd." + $model_name + ".firstperson_off_hand"),
-              "firstperson_head": "animation.geysercmd.disable"
+              "thirdperson_main_hand": ("animation.geyser_custom." + $model_name + ".thirdperson_main_hand"),
+              "thirdperson_off_hand": ("animation.geyser_custom." + $model_name + ".thirdperson_off_hand"),
+              "thirdperson_head": ("animation.geyser_custom." + $model_name + ".head"),
+              "firstperson_main_hand": ("animation.geyser_custom." + $model_name + ".firstperson_main_hand"),
+              "firstperson_off_hand": ("animation.geyser_custom." + $model_name + ".firstperson_off_hand"),
+              "firstperson_head": "animation.geyser_custom.disable"
             },
             "render_controllers": [ "controller.render.item_default" ]
           }
         }
       }
 
-      ' | sponge ./target/rp/attachables/geysercmd/${gid}.attachable.json
+      ' | sponge ./target/rp/attachables/geyser_custom/${gid}.attachable.json
 
-      # generate our bp block definition
-      jq -c -n --arg block_material "${block_material}" --arg geyser_id "${gid}" '
-
-      {
-          "format_version": "1.16.200",
-          "minecraft:block": {
-              "description": {
-                  "identifier": ("geysercmd:" + $geyser_id)
-              },
-              "components": {
-                  "minecraft:material_instances": {
-                      "*": {
-                          "texture": "gmdl_atlas",
-                          "render_method": $block_material,
-                          "face_dimming": false,
-                          "ambient_occlusion": false
-                      }
-                  },
-                  "tag:geysercmd:example_block": {},
-                  "minecraft:geometry": ("geometry.geysercmd." + $geyser_id),
-                  "minecraft:placement_filter": {
-                    "conditions": [
-                        {
-                            "allowed_faces": [
-                            ],
-                            "block_filter": [
-                            ]
+      # generate our bp block definition if this is a 3D item
+      if [[ ${generated} = false ]]
+      then
+        jq -c -n --arg block_material "${block_material}" --arg geyser_id "${gid}" '
+        {
+            "format_version": "1.16.200",
+            "minecraft:block": {
+                "description": {
+                    "identifier": ("geyser_custom:" + $geyser_id)
+                },
+                "components": {
+                    "minecraft:material_instances": {
+                        "*": {
+                            "texture": "gmdl_atlas",
+                            "render_method": $block_material,
+                            "face_dimming": false,
+                            "ambient_occlusion": false
                         }
-                    ]
-                  }
-              }
-          }
-      }
-
-      ' | sponge ./target/bp/blocks/geysercmd/${gid}.json
-      local tot_pos=$((cur_pos + $(ls ./target/bp/blocks/geysercmd/*.json | wc -l)))
+                    },
+                    "tag:geyser_custom:example_block": {},
+                    "minecraft:geometry": ("geometry.geyser_custom." + $geyser_id),
+                    "minecraft:placement_filter": {
+                      "conditions": [
+                          {
+                              "allowed_faces": [
+                              ],
+                              "block_filter": [
+                              ]
+                          }
+                      ]
+                    }
+                }
+            }
+        }
+        ' | sponge ./target/bp/blocks/geyser_custom/${gid}.json
+      else
+        jq -c -n --arg geyser_id "${gid}" '
+        {
+            "format_version": "1.16.100",
+            "minecraft:item": {
+                "description": {
+                    "identifier": ("geyser_custom:" + $geyser_id),
+                    "category": "items"
+                }
+            }
+        }
+        ' | sponge ./target/bp/items/geyser_custom/${gid}.json
+      fi
+      # generate our bp item definition if this is a 2D item
+      local tot_pos=$((cur_pos + $(ls ./target/rp/attachables/geyser_custom/*.json | wc -l)))
       status_message completion "${gid} converted\n$(ProgressBar ${tot_pos} ${_end})"
       echo
    }
-   convert_model ${file} ${gid} &
+   convert_model ${file} ${gid} ${generated} &
 
 done < all.csv
 wait # wait for all the jobs to finish
@@ -782,7 +850,7 @@ mkdir ./target/rp/texts
 jq -r '
 
 def format: (.[0:1] | ascii_upcase ) + (.[1:] | gsub( "_(?<a>[a-z])"; (" " + .a) | ascii_upcase));
-to_entries[]|"\("tile.geysercmd:" + .key + ".name")=\(.value.item | format)"
+to_entries[]|"\("tile.geyser_custom:" + .key + ".name")=\(.value.item | format)"
 
 ' config.json | sponge ./target/rp/texts/en_US.lang
 
@@ -797,7 +865,7 @@ status_message completion "en_US and en_GB lang files written\n"
 #if command -v pngquant >/dev/null 2>&1 ; then
 #    status_message completion "Optional dependency pngquant detected"
 #    status_message process "Attempting image compression"
-#    pngquant -f --skip-if-larger --ext .png --strip ./target/rp/textures/blocks/geysercmd/*.png
+#    pngquant -f --skip-if-larger --ext .png --strip ./target/rp/textures/geyser/geyser_custom/*.png
 #    status_message completion "Image compression complete"
 #    echo
 #fi
@@ -812,11 +880,24 @@ if test -f ${merge_input}; then
   if test -f ./inputbedrockpack/textures/terrain_texture.json; then
     status_message process "Merging terrain texture files"
     jq -s '
-    {"resource_pack_name": "vanilla",
-    "texture_name": "atlas.terrain",
-    "padding": 8, "num_mip_levels": 4,
-    "texture_data": (.[1].texture_data + .[0].texture_data)}
+    {
+      "resource_pack_name": "vanilla",
+      "texture_name": "atlas.terrain",
+      "padding": 8, 
+      "num_mip_levels": 4,
+      "texture_data": (.[1].texture_data + .[0].texture_data)
+    }
     ' ./target/rp/textures/terrain_texture.json ./inputbedrockpack/textures/terrain_texture.json | sponge ./target/rp/textures/terrain_texture.json
+  fi
+  if test -f ./inputbedrockpack/textures/item_texture.json; then
+    status_message process "Merging item texture files"
+    jq -s '
+    {
+      "resource_pack_name": "vanilla",
+      "texture_name": "atlas.terrain",
+      "texture_data": (.[1].texture_data + .[0].texture_data)
+    }
+    ' ./target/rp/textures/item_texture.json ./inputbedrockpack/textures/item_texture.json | sponge ./target/rp/textures/item_texture.json
   fi
   if test -f ./inputbedrockpack/texts/languages.json; then
     status_message process "Merging languages file"
@@ -837,12 +918,12 @@ fi
 
 # cleanup
 status_message critical "Deleting scratch files"
-rm -rf assets && rm -f pack.mcmeta && rm -f pack.png && rm -f parents.json && rm -f all.csv && rm -f pa.csv && rm -f README.md && rm -f README.txt && rm -f *.temp && rm -f spritesheet.json
+# rm -rf assets && rm -f pack.mcmeta && rm -f pack.png && rm -f parents.json && rm -f all.csv && rm -f pa.csv && rm -f README.md && rm -f README.txt && rm -f *.temp && rm -f spritesheet.json
 
 status_message critical "Deleting unused entries from config"
-jq 'map_values(del(.path, .element_parent, .parent, .geyserID))' config.json | sponge config.json
+# jq 'map_values(del(.path, .element_parent, .parent, .geyserID))' config.json | sponge config.json
 status_message process "Moving config to target directory"
-mv config.json ./target/config.json
+# mv config.json ./target/config.json
 echo
 
 status_message process "Compressing output packs"
