@@ -9,9 +9,9 @@ To run without settings prompts and use the defaults:
 ```
 
 ## About
-The script has been updated to handle parent models. It will generate a single sprite sheet for all textures.
+The script has been updated to handle parent models and 2D items. It will generate a single sprite sheet for all textures used in 3D models, and copy over textures for 2D items individually.
 
-Your script and resource pack zip file must be in the same directory. Ensure that this zip file is properly setup. It should not have a root directory. Your resource pack must also be formatted correctly, to vanilla specifications. By default, this script will download the default assets in order to generate texture atlases in cases in which you have utilized those. If you wish to use different default assets, you may specify this at the beginning. However, you must ensure that the specified fallback pack has sufficient assets to supply any texture request from any predicate model or model in a predicate model's parental tree. As long as you provide valid JSON, the script should output something you can use.
+Your script and resource pack zip file must be in the same directory. Ensure that this zip file is properly setup. It should not have a root directory. Your resource pack must also be formatted correctly, to vanilla specifications. By default, this script will download the default assets in order to generate texture atlases in cases in which you have utilized those. If you wish to use different default assets, you may specify this at the beginning. The default pack will then be downloaded after your specified assets, with your specified assets taking precedence. As long as you provide valid JSON, the script should output something you can use.
 
 You may also specify an input bedrock pack to merge with the output assets produced by the converter. This should be in the same directory as the script and your input Java pack. Like the Java pack, ensure that it is compressed with no root folder. When prompted, type the file name of the input file, such as `example_rp.mcpack`. Merging of behavior packs is not currently supported.
 
@@ -29,7 +29,7 @@ Also note that this script requires:
 - [nodejs](https://nodejs.org/en/)
 - [spritesheet-js](https://www.npmjs.com/package/spritesheet-js)
 
-It will exit if you fail to meet these dependencies. While the ultimate intention here is to import these via Geyser, the script currently generates a behavior pack so that you may view your converted models in Bedrock Edition. For progress on this, see [Geyser Issue 210](https://github.com/GeyserMC/Geyser/issues/210).
+It will exit if you fail to meet these dependencies. While the ultimate intention here is to import these via Geyser, the script currently generates a behavior pack so that you may view your converted models in Bedrock Edition. It also generates a mappings file compliant with [@ImDaBigBoss](https://github.com/ImDaBigBoss)'s [PR](https://github.com/GeyserMC/Geyser/pull/2822) to add predicate support to Geyser.
 
 Should you have any complaints about getting this to run because you "only use windows", do note that I was able to run this perfectly fine on a Mac running Parallels to run Windows to run WSL to run Ubuntu 20. Therefore, I am sure it is perfectly possible for you to get this working, regardless of your OS. I will gladly take such criticism only if you are willing to help develop this into a proper cross platform program. 
 
