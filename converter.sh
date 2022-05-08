@@ -255,7 +255,7 @@ def gtest($input_g):
 
 # create our initial directories for bp & rp
 status_message process "Generating initial directory strucutre for our bedrock packs"
-mkdir -p ./target/rp/models/geyser_custom && mkdir -p ./target/rp/textures/geyser/geyser_custom && mkdir -p ./target/rp/attachables/geyser_custom && mkdir -p ./target/rp/animations/geyser_custom && mkdir -p ./target/bp/blocks/geyser_custom && mkdir -p ./target/bp/items/geyser_custom
+mkdir -p ./target/rp/models/blocks/geyser_custom && mkdir -p ./target/rp/textures/geyser/geyser_custom && mkdir -p ./target/rp/attachables/geyser_custom && mkdir -p ./target/rp/animations/geyser_custom && mkdir -p ./target/bp/blocks/geyser_custom && mkdir -p ./target/bp/items/geyser_custom
 
 # copy over our pack.png if we have one
 if test -f "./pack.png"; then
@@ -281,7 +281,7 @@ jq -c --arg pack_desc "${pack_desc}" --arg uuid1 "${uuid1}" --arg uuid2 "${uuid2
         "name": $pack_desc,
         "uuid": ($uuid1 | ascii_downcase),
         "version": [1, 0, 0],
-        "min_engine_version": [1, 18, 30]
+        "min_engine_version": [1, 18, 3]
     },
     "modules": [
         {
@@ -304,7 +304,7 @@ jq -c --arg pack_desc "${pack_desc}" --arg uuid1 "${uuid1}" --arg uuid3 "${uuid3
         "name": $pack_desc,
         "uuid": ($uuid3 | ascii_downcase),
         "version": [1, 0, 0],
-        "min_engine_version": [ 1, 16, 100]
+        "min_engine_version": [ 1, 18, 3]
     },
     "modules": [
         {
@@ -381,22 +381,27 @@ then
   wget -nv --show-progress -O default_assets.zip https://github.com/InventivetalentDev/minecraft-assets/zipball/refs/tags/1.18.2
   printf "${C_CLOSE}"
   status_message completion "Fallback resources downloaded"
-  root_folder=($(unzip -Z -1 default_assets.zip | head -1))
 fi
 
 if [[ ${fallback_pack} != null &&  ${fallback_pack} != none ]]
 then
   printf "\e[3m\e[37m"
-  wget -nv --show-progress -O default_assets.zip "${fallback_pack}"
-  status_message completion "Fallback resources downloaded"
-  root_folder=""
+  wget -nv --show-progress -O provided_assets.zip "${fallback_pack}"
+  printf "${C_CLOSE}"
+  status_message completion "Provided resources downloaded"
+  mkdir ./providedassetholding
+  unzip -n -q -d ./providedassetholding provided_assets.zip "assets/**"
+  status_message completion "Provided resources decompressed"
+  cp -n -r "./providedassetholding/assets"/** './assets/'
+  status_message completion "Provided resources merged with target pack"
 fi
 
 if [[ ${fallback_pack} != none ]]
 then
+  root_folder=($(unzip -Z -1 default_assets.zip | head -1))
   mkdir ./defaultassetholding
-  unzip -q -d ./defaultassetholding default_assets.zip "${root_folder}assets/minecraft/textures/**/*"
-  unzip -q -d ./defaultassetholding default_assets.zip "${root_folder}assets/minecraft/models/**/*"
+  unzip -n -q -d ./defaultassetholding default_assets.zip "${root_folder}assets/minecraft/textures/**/*"
+  unzip -n -q -d ./defaultassetholding default_assets.zip "${root_folder}assets/minecraft/models/**/*"
   status_message completion "Fallback resources decompressed"
   cp -n -r "./defaultassetholding/${root_folder}assets/minecraft/textures"/* './assets/minecraft/textures/'
   cp -n -r "./defaultassetholding/${root_folder}assets/minecraft/models"/* './assets/minecraft/models/'
@@ -618,7 +623,7 @@ do
             "name": "geyser_custom_z",
             "parent": "geyser_custom_y",
             "pivot": [0, 8, 0],
-            "texture_meshes": ([{"texture": "default", "position": [0, 8, 0], "rotation": [90, 0, -180], "local_pivot": [8, 0.5, 16]}])
+            "texture_meshes": ([{"texture": "default", "position": [0, 8, 0], "rotation": [90, 0, -180], "local_pivot": [8, 0.5, 8]}])
           }) else ({
             "name": "geyser_custom_z",
             "parent": "geyser_custom_y",
@@ -627,7 +632,7 @@ do
             }) end] + (pivot_groups | map(del(.cubes[].rotation)) | to_entries | map( (.value.name = "rot_\(1+.key)" ) | .value)))
         }]
       }
-      ' ${file} | sponge ./target/rp/models/geyser_custom/${gid}.json
+      ' ${file} | sponge ./target/rp/models/blocks/geyser_custom/${gid}.json
 
       # generate our rp animations via display settings
       jq -c --arg model_name "${gid}" '
@@ -791,7 +796,7 @@ do
       then
         jq -c -n --arg block_material "${block_material}" --arg geyser_id "${gid}" '
         {
-            "format_version": "1.16.200",
+            "format_version": "1.16.100",
             "minecraft:block": {
                 "description": {
                     "identifier": ("geyser_custom:" + $geyser_id)
@@ -805,7 +810,6 @@ do
                             "ambient_occlusion": false
                         }
                     },
-                    "tag:geyser_custom:example_block": {},
                     "minecraft:geometry": ("geometry.geyser_custom." + $geyser_id),
                     "minecraft:placement_filter": {
                       "conditions": [
@@ -829,6 +833,11 @@ do
                 "description": {
                     "identifier": ("geyser_custom:" + $geyser_id),
                     "category": "items"
+                },
+                "components": {
+                  "minecraft:icon": {
+                    "texture": $geyser_id
+                  }
                 }
             }
         }
@@ -918,9 +927,9 @@ fi
 
 # cleanup
 status_message critical "Deleting scratch files"
-# rm -rf assets && rm -f pack.mcmeta && rm -f pack.png && rm -f parents.json && rm -f all.csv && rm -f pa.csv && rm -f README.md && rm -f README.txt && rm -f *.temp && rm -f spritesheet.json
+rm -rf assets && rm -f pack.mcmeta && rm -f pack.png && rm -f parents.json && rm -f all.csv && rm -f pa.csv && rm -f README.md && rm -f README.txt && rm -f *.temp && rm -f spritesheet.json
 
-status_message critical "Deleting unused entries from config"
+#status_message critical "Deleting unused entries from config"
 # jq 'map_values(del(.path, .element_parent, .parent, .geyserID))' config.json | sponge config.json
 status_message process "Creating Geyser mappings in target directory"
 echo
