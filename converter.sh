@@ -372,11 +372,7 @@ jq -nc '
 # get the current default textures and merge them with our rp
 if [[ ${fallback_pack} != none ]]
 then
-   status_message process "Now downloading the fallback resource pack:"
-fi
-
-if [[ ${fallback_pack} = null ]]
-then
+  status_message process "Now downloading the fallback resource pack:"
   printf "\e[3m\e[37m"
   wget -nv --show-progress -O default_assets.zip https://github.com/InventivetalentDev/minecraft-assets/zipball/refs/tags/1.18.2
   printf "${C_CLOSE}"
