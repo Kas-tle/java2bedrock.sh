@@ -936,7 +936,7 @@ jq '
       {
         "name": .key,
         "allow_offhand": true,
-        "icon": .value.item
+        "icon": (if .value.generated == "false" then .value.item else .key end)
       }
       + (if .value.nbt.CustomModelData then {"custom_model_data": (.value.nbt.CustomModelData)} else {} end)
       + (if .value.nbt.Damage then {"damage_predicate": (.value.nbt.Damage)} else {} end)
