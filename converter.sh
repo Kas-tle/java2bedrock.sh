@@ -562,7 +562,7 @@ do
             | (($fn2 - $fn0) as $num | [([-1, $num] | max), 1] | min) as $x_sign
             | (($fn3 - $fn1) as $num | [([-1, $num] | max), 1] | min) as $y_sign |
             {
-              "uv": [(($fn2 + (0.016 * $x_sign)) | roundit), (($fn3 + (0.016 * $y_sign)) | roundit)],
+              "uv": [(($fn2 - (0.016 * $x_sign)) | roundit), (($fn3 - (0.016 * $y_sign)) | roundit)],
               "uv_size": [((($fn0 - $fn2) + (0.016 * $x_sign)) | roundit), ((($fn1 - $fn3) + (0.016 * $y_sign)) | roundit)]
             } else null end);
           {
