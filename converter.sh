@@ -561,10 +561,13 @@ do
             | ( (((((.faces | .[$input].uv[3]) * (texturedata($input_n) | .frame.h) * 0.0625) + (texturedata($input_n) | .frame.y)) * (16 / ($atlas[] | .meta.size.h))) ) ) as $fn3 
             | (($fn2 - $fn0) as $num | [([-1, $num] | max), 1] | min) as $x_sign
             | (($fn3 - $fn1) as $num | [([-1, $num] | max), 1] | min) as $y_sign |
-            {
+            (if ($input == "up" or $input == "down") then {
               "uv": [(($fn2 - (0.016 * $x_sign)) | roundit), (($fn3 - (0.016 * $y_sign)) | roundit)],
               "uv_size": [((($fn0 - $fn2) + (0.016 * $x_sign)) | roundit), ((($fn1 - $fn3) + (0.016 * $y_sign)) | roundit)]
-            } else null end);
+            } else {
+              "uv": [(($fn0 + (0.016 * $x_sign)) | roundit), (($fn1 + (0.016 * $y_sign)) | roundit)],
+              "uv_size": [((($fn2 - $fn0) - (0.016 * $x_sign)) | roundit), ((($fn3 - $fn1) - (0.016 * $y_sign)) | roundit)]
+            } end) else null end);
           {
           "north": uv_calc("north"),
           "south": uv_calc("south"),
