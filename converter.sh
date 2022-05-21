@@ -370,7 +370,7 @@ jq -nc '
 
 # DO DEFAULT ASSETS HERE!!
 # get the current default textures and merge them with our rp
-if [[ ${fallback_pack} != none ]]
+if [[ ${fallback_pack} != none ]] && [[ ! -f default_assets.zip ]]
 then
   status_message process "Now downloading the fallback resource pack:"
   printf "\e[3m\e[37m"
@@ -403,7 +403,7 @@ then
   cp -n -r "./defaultassetholding/${root_folder}assets/minecraft/models"/* './assets/minecraft/models/'
   status_message completion "Fallback resources merged with target pack"
   rm -rf defaultassetholding
-  rm -f default_assets.zip
+  #rm -f default_assets.zip
   status_message critical "Extraneous fallback resources deleted\n"
 fi
 
@@ -589,7 +589,6 @@ do
         "parent": "geyser_custom_z",
         "pivot": ($i_piv),
         "rotation": ($i_rot),
-        "mirror": true,
         "cubes": [($element_array | .[] | select(.rotation == $i_rot and .pivot == $i_piv))]
       }))) else {} end
       ;
