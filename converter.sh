@@ -88,7 +88,7 @@ if [[ ${2} != default ]]
 then
   status_message info "This script will now ask some configuration questions. Default values are yellow. Simply press enter to use the defaults.\n"
   user_input merge_input "Is there an existing bedrock pack in this directory with which you would like the output merged? (e.g. input.mcpack)" "null" "Input pack to merge"
-  user_input attachable_material "What material should we use for the attachables?" "entity_alphatest" "Attachable material"
+  user_input attachable_material "What material should we use for the attachables?" "entity_alphablend" "Attachable material"
   user_input block_material "What material should we use for the blocks?" "alpha_test" "Block material"
   user_input fallback_pack "From what URL should we download the fallback resource pack? (must be a direct link)\n Use 'none' if default resources are not needed." "null" "Fallback pack URL"
 fi
@@ -96,7 +96,7 @@ fi
 status_message plain "
 Generating Bedrock 3D resource pack with settings:
 ${C_GRAY}Input pack to merge: ${C_BLUE}${merge_input:=null}
-${C_GRAY}Attachable material: ${C_BLUE}${attachable_material:=entity_alphatest}
+${C_GRAY}Attachable material: ${C_BLUE}${attachable_material:=entity_alphablend}
 ${C_GRAY}Block material: ${C_BLUE}${block_material:=alpha_test}
 ${C_GRAY}Fallback pack URL: ${C_BLUE}${fallback_pack:=null}
 "
