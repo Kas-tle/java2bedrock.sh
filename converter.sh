@@ -975,7 +975,7 @@ jq '
 
 status_message process "Compressing output packs"
 mkdir ./target/packaged
-cd ./target/rp > /dev/null && zip -rq8 geyser_rp.mcpack . -x "*/.*" && cd ../.. > /dev/null && mv ./target/rp/geyser_rp.mcpack ./target/packaged/geyser_rp.mcpack
+cd ./target/rp > /dev/null && zip -rq8 geyser_rp.mcpack . -x "*/.*" -x "./staging/*" && cd ../.. > /dev/null && mv ./target/rp/geyser_rp.mcpack ./target/packaged/geyser_rp.mcpack
 cd ./target/bp > /dev/null && zip -rq8 geyser_bp.mcpack . -x "*/.*" && cd ../.. > /dev/null && mv ./target/bp/geyser_bp.mcpack ./target/packaged/geyser_bp.mcpack
 cd ./target/packaged > /dev/null && zip -rq8 geyser.mcaddon . -i "*.mcpack" && cd ../.. > /dev/null
 mkdir ./target/unpackaged
