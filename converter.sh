@@ -67,6 +67,7 @@ do
         a) attachable_material=${OPTARG};;
         b) block_material=${OPTARG};;
         f) fallback_pack=${OPTARG};;
+        v) default_asset_version=${OPTARG};;
     esac
 done
 
@@ -387,7 +388,7 @@ if [[ ${fallback_pack} != none ]] && [[ ! -f default_assets.zip ]]
 then
   status_message process "Now downloading the fallback resource pack:"
   printf "\e[3m\e[37m"
-  wget -nv --show-progress -O default_assets.zip https://github.com/InventivetalentDev/minecraft-assets/zipball/refs/tags/1.18.2
+  wget -nv --show-progress -O default_assets.zip https://github.com/InventivetalentDev/minecraft-assets/zipball/refs/tags/${default_asset_version:=1.18.2}
   printf "${C_CLOSE}"
   status_message completion "Fallback resources downloaded"
 fi
