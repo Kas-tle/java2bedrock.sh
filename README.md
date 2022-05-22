@@ -15,7 +15,7 @@ To run without settings prompts, use flags:
 For example:
 
 ```
-./converter.sh MyResourcePack.zip -w "false" -m "MyBedrock.mcpack" -a "entity_alphatest_one_sided" -b "alpha_test" -f "null"
+./converter.sh MyResourcePack.zip -w "false" -m "MyBedrock.mcpack" -a "entity_alphatest_one_sided" -b "alpha_test" -f "null" -v "1.18.2"
 ```
 
 **NOTICE:** Due to [MCPE-152191](https://bugs.mojang.com/browse/MCPE-152191), a [resource pack](https://bugs.mojang.com/secure/attachment/473588/473588_BlockGeoFi.mcpack) with a a marketplace uuid that has been whitlisted to use the old block rendering engine must be applied above the resource pack containing the block models in order for them to render properly. This is only required to preview the models in game with an inventory icon. Geyser does not currently support the use of block models, so this script will simply use the icon of the vanilla item.
