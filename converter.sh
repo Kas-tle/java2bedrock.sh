@@ -96,7 +96,7 @@ fi
 # ensure we have all the required dependencies
 dependency_check "jq-1.6" "https://stedolan.github.io/jq/download/" "jq --version" "1.6"
 dependency_check "sponge" "https://joeyh.name/code/moreutils/" "-v sponge" ""
-dependency_check "imagemagick-7" "https://imagemagick.org/script/download.php" "magick --version" ""
+dependency_check "imagemagick" "https://imagemagick.org/script/download.php" "convert --version" ""
 dependency_check "spritesheet-js" "https://www.npmjs.com/package/spritesheet-js" "-v spritesheet-js" ""
 status_message completion "All dependencies have been satisfied\n"
 
@@ -513,7 +513,9 @@ done < pa.csv
 
 # make sure we crop all mcmeta associated png files
 status_message process "Cropping animated textures"
-for i in $(find ./assets/**/textures -type f -name "*.mcmeta" | sed 's/\.mcmeta//'); do magick ${i} -background none -gravity North -extent "%[fx:h<w?h:w]x%[fx:h<w?h:w]" ${i}; done
+for i in $(find ./assets/**/textures -type f -name "*.mcmeta" | sed 's/\.mcmeta//'); do 
+convert ${i} -set option:distort:viewport "%[fx:min(w,h)]x%[fx:min(w,h)]" -distort affine "0,0 0,0" ${i}
+done
 
 status_message process "Compiling final model list"
 # get our final 3d model list from the config
