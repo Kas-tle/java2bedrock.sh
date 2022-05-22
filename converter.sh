@@ -59,7 +59,7 @@ else
 fi
 
 # get flags
-while getopts w:m:a:b:f: flag "${@:2}"
+while getopts w:m:a:b:f:v: flag "${@:2}"
 do
     case "${flag}" in
         w) warn=${OPTARG};;
@@ -96,7 +96,7 @@ fi
 # ensure we have all the required dependencies
 dependency_check "jq-1.6" "https://stedolan.github.io/jq/download/" "jq --version" "1.6"
 dependency_check "sponge" "https://joeyh.name/code/moreutils/" "-v sponge" ""
-dependency_check "imagemagick-7" "https://imagemagick.org/script/download.php" "magick --version" "ImageMagick 7."
+dependency_check "imagemagick-7" "https://imagemagick.org/script/download.php" "magick --version" ""
 dependency_check "spritesheet-js" "https://www.npmjs.com/package/spritesheet-js" "-v spritesheet-js" ""
 status_message completion "All dependencies have been satisfied\n"
 
