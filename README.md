@@ -10,6 +10,7 @@ To run without settings prompts, use flags:
 - `-a (attachable_material)` material to use for attachables written by the script
 - `-b (block_material)` material to use for blocks written by the script
 - `-f (https://somesite.com/fallback_pack.zip|null)` URL of a Java Edition resource to use for fallback textures before the default pack
+- `-v (default_asset_version)` version of Minecraft Java Edition for which to pull default assets
 
 For example:
 
