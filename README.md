@@ -3,9 +3,18 @@ To run, simply:
 ```
 ./converter.sh MyResourcePack.zip
 ```
-To run without settings prompts and use the defaults:
+
+To run without settings prompts, use flags:
+- `-w (true|false)` whether or not to show the warning prompt 
+- `-m (pack_to_merge.mcpack)` filename of Bedrock Edition resource pack in the same diretory to merge with result of the conversion
+- `-a (attachable_material)` material to use for attachables written by the script
+- `-b (block_material)` material to use for blocks written by the script
+- `-f (https://somesite.com/fallback_pack.zip|null)` URL of a Java Edition resource to use for fallback textures before the default pack
+
+For example:
+
 ```
-./converter.sh MyResourcePack.zip default
+./converter.sh MyResourcePack.zip -w "false" -m "MyBedrock.mcpack" -a "entity_alphatest_one_sided" -b "alpha_test" -f "null"
 ```
 
 **NOTICE:** Due to [MCPE-152191](https://bugs.mojang.com/browse/MCPE-152191), a [resource pack](https://bugs.mojang.com/secure/attachment/473588/473588_BlockGeoFi.mcpack) with a a marketplace uuid that has been whitlisted to use the old block rendering engine must be applied above the resource pack containing the block models in order for them to render properly. This is only required to preview the models in game with an inventory icon. Geyser does not currently support the use of block models, so this script will simply use the icon of the vanilla item.
