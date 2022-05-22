@@ -43,9 +43,11 @@ dependency_check () {
 }
 
 user_input () {
-  status_message plain "${2} ${C_YELLOW}[${3}]\n"
-  read -p "${4}: " ${1}
-  echo
+  if [[ -z "${!1}" ]]; then
+    status_message plain "${2} ${C_YELLOW}[${3}]\n"
+    read -p "${4}: " ${1}
+    echo
+  fi
 }
 
 # ensure input pack exists
@@ -55,6 +57,18 @@ if ! test -f "${1}"; then
 else
   status_message process "Input file ${1} detected"
 fi
+
+# get flags
+while getopts w:m:a:b:f: flag "${@:2}"
+do
+    case "${flag}" in
+        w) warn=${OPTARG};;
+        m) merge_input=${OPTARG};;
+        a) attachable_material=${OPTARG};;
+        b) block_material=${OPTARG};;
+        f) fallback_pack=${OPTARG};;
+    esac
+done
 
 printf '\e[1;31m%-6s\e[m\n' "
 ███████████████████████████████████████████████████████████████████████████████
@@ -72,9 +86,11 @@ printf '\e[1;31m%-6s\e[m\n' "
 ███████████████████████████████████████████████████████████████████████████████
 "
 
+if [[ ${warn} != "false" ]]; then
 read -p $'\e[37mTo acknowledge and continue, press enter. To exit, press Ctrl+C.:\e[0m
 
 '
+fi
 
 # ensure we have all the required dependencies
 dependency_check "jq-1.6" "https://stedolan.github.io/jq/download/" "jq --version" "1.6"
@@ -84,14 +100,11 @@ dependency_check "spritesheet-js" "https://www.npmjs.com/package/spritesheet-js"
 status_message completion "All dependencies have been satisfied\n"
 
 # initial configuration
-if [[ ${2} != default ]]
-then
-  status_message info "This script will now ask some configuration questions. Default values are yellow. Simply press enter to use the defaults.\n"
-  user_input merge_input "Is there an existing bedrock pack in this directory with which you would like the output merged? (e.g. input.mcpack)" "null" "Input pack to merge"
-  user_input attachable_material "What material should we use for the attachables?" "entity_alphatest_one_sided" "Attachable material"
-  user_input block_material "What material should we use for the blocks?" "alpha_test" "Block material"
-  user_input fallback_pack "From what URL should we download the fallback resource pack? (must be a direct link)\n Use 'none' if default resources are not needed." "null" "Fallback pack URL"
-fi
+status_message info "This script will now ask some configuration questions. Default values are yellow. Simply press enter to use the defaults.\n"
+user_input merge_input "Is there an existing bedrock pack in this directory with which you would like the output merged? (e.g. input.mcpack)" "null" "Input pack to merge"
+user_input attachable_material "What material should we use for the attachables?" "entity_alphatest_one_sided" "Attachable material"
+user_input block_material "What material should we use for the blocks?" "alpha_test" "Block material"
+user_input fallback_pack "From what URL should we download the fallback resource pack? (must be a direct link)\n Use 'none' if default resources are not needed." "null" "Fallback pack URL"
 
 status_message plain "
 Generating Bedrock 3D resource pack with settings:
@@ -744,6 +757,60 @@ do
 
       ' ${file} | sponge ./target/rp/animations/geyser_custom/animation.${gid}.json
 
+      # generate our bp block definition if this is a 3D item
+      if [[ ${generated} = false ]]
+      then
+        jq -c -n --arg block_material "${block_material}" --arg geyser_id "${gid}" '
+        {
+            "format_version": "1.16.100",
+            "minecraft:block": {
+                "description": {
+                    "identifier": ("geyser_custom:" + $geyser_id)
+                },
+                "components": {
+                    "minecraft:material_instances": {
+                        "*": {
+                            "texture": "gmdl_atlas",
+                            "render_method": $block_material,
+                            "face_dimming": false,
+                            "ambient_occlusion": false
+                        }
+                    },
+                    "minecraft:geometry": ("geometry.geyser_custom." + $geyser_id),
+                    "minecraft:placement_filter": {
+                      "conditions": [
+                          {
+                              "allowed_faces": [
+                              ],
+                              "block_filter": [
+                              ]
+                          }
+                      ]
+                    }
+                }
+            }
+        }
+        ' | sponge ./target/bp/blocks/geyser_custom/${gid}.json
+      # generate our bp item definition if this is a 2D item
+      else
+        jq -c -n --arg geyser_id "${gid}" '
+        {
+            "format_version": "1.16.100",
+            "minecraft:item": {
+                "description": {
+                    "identifier": ("geyser_custom:" + $geyser_id),
+                    "category": "items"
+                },
+                "components": {
+                  "minecraft:icon": {
+                    "texture": $geyser_id
+                  }
+                }
+            }
+        }
+        ' | sponge ./target/bp/items/geyser_custom/${gid}.json
+      fi
+
       # generate our rp attachable definition
       jq -c -n --arg generated "${generated}" --arg attachable_material "${attachable_material}" --arg v_main "v.main_hand = c.item_slot == 'main_hand';" --arg v_off "v.off_hand = c.item_slot == 'off_hand';" --arg v_head "v.head = c.item_slot == 'head';" --arg model_name "${gid}" '
 
@@ -789,59 +856,7 @@ do
 
       ' | sponge ./target/rp/attachables/geyser_custom/${gid}.attachable.json
 
-      # generate our bp block definition if this is a 3D item
-      if [[ ${generated} = false ]]
-      then
-        jq -c -n --arg block_material "${block_material}" --arg geyser_id "${gid}" '
-        {
-            "format_version": "1.16.100",
-            "minecraft:block": {
-                "description": {
-                    "identifier": ("geyser_custom:" + $geyser_id)
-                },
-                "components": {
-                    "minecraft:material_instances": {
-                        "*": {
-                            "texture": "gmdl_atlas",
-                            "render_method": $block_material,
-                            "face_dimming": false,
-                            "ambient_occlusion": false
-                        }
-                    },
-                    "minecraft:geometry": ("geometry.geyser_custom." + $geyser_id),
-                    "minecraft:placement_filter": {
-                      "conditions": [
-                          {
-                              "allowed_faces": [
-                              ],
-                              "block_filter": [
-                              ]
-                          }
-                      ]
-                    }
-                }
-            }
-        }
-        ' | sponge ./target/bp/blocks/geyser_custom/${gid}.json
-      else
-        jq -c -n --arg geyser_id "${gid}" '
-        {
-            "format_version": "1.16.100",
-            "minecraft:item": {
-                "description": {
-                    "identifier": ("geyser_custom:" + $geyser_id),
-                    "category": "items"
-                },
-                "components": {
-                  "minecraft:icon": {
-                    "texture": $geyser_id
-                  }
-                }
-            }
-        }
-        ' | sponge ./target/bp/items/geyser_custom/${gid}.json
-      fi
-      # generate our bp item definition if this is a 2D item
+      # progress
       local tot_pos=$((cur_pos + $(ls ./target/rp/attachables/geyser_custom/*.json | wc -l)))
       status_message completion "${gid} converted\n$(ProgressBar ${tot_pos} ${_end})"
       echo
