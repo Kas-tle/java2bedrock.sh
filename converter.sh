@@ -413,10 +413,12 @@ then
   unzip -n -q -d ./defaultassetholding default_assets.zip "${root_folder}assets/minecraft/textures/**/*"
   unzip -n -q -d ./defaultassetholding default_assets.zip "${root_folder}assets/minecraft/models/**/*"
   status_message completion "Fallback resources decompressed"
+  mkdir -p './assets/minecraft/textures/'
   cp -n -r "./defaultassetholding/${root_folder}assets/minecraft/textures"/* './assets/minecraft/textures/'
   cp -n -r "./defaultassetholding/${root_folder}assets/minecraft/models"/* './assets/minecraft/models/'
   status_message completion "Fallback resources merged with target pack"
   rm -rf defaultassetholding
+  rm -rf staging
   #rm -f default_assets.zip
   status_message critical "Extraneous fallback resources deleted\n"
 fi
