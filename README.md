@@ -49,25 +49,25 @@ Should you have any complaints about getting this to run because you "only use w
 
 ### Debian, Ubuntu, & Mint
 ```sh
-sudo apt-get install moreutils jq imagemagick unzip zip nodejs
+sudo apt-get install moreutils jq imagemagick unzip zip nodejs uuid-runtime
 npm i -g spritesheet-js
 ```
 
 ### MacOS
 ```sh
-brew install moreutils jq imagemagick unzip zip nodejs
+brew install moreutils jq imagemagick unzip zip nodejs uuid-runtime
 npm i -g spritesheet-js
 ```
 
 ### RHEL, Fedora, & Centos
 ```sh
-sudo yum install moreutils jq imagemagick unzip zip nodejs
+sudo yum install moreutils jq imagemagick unzip zip nodejs uuid-runtime
 npm i -g spritesheet-js
 ```
 
 ### Arch Linux
 ```sh
-sudo pacman -S moreutils jq imagemagick unzip zip nodejs
+sudo pacman -S moreutils jq imagemagick unzip zip nodejs uuid-runtime
 npm i -g spritesheet-js
 ```
 
