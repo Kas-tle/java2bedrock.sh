@@ -1,3 +1,6 @@
 target/
 *.zip
 config.json
+pack.png
+pack.mcmeta
+assets/
