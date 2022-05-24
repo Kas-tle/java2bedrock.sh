@@ -8,7 +8,7 @@ body:
       value: |
         Please be sure to include a directly downloadable link to your pack. The action will fail if the pack cannot be downloaded.
   - type: input
-    id: java-pack-url
+    id: java-pack-direct-download-url
     attributes:
       label: Java Pack Direct Download URL
       description: Please provide a direct link to the Java Edition resource pack to be converted.
@@ -16,7 +16,7 @@ body:
     validations:
       required: true
   - type: input
-    id: default-pack-url
+    id: default-pack-direct-download-url
     attributes:
       label: Default Pack Direct Download URL
       description: Optionally provide a direct link to a Java Edition resource pack to be used for default textures before the vanilla default pack.
@@ -24,7 +24,7 @@ body:
     validations:
       required: false
   - type: input
-    id: merge-pack-url
+    id: bedrock-merge-pack-direct-download-url
     attributes:
       label: Bedrock Merge Pack Direct Download URL
       description: Optionally provide a direct link to the Bedrock Edition resource pack to be merged into the converted pack.
