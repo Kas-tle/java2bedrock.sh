@@ -4,3 +4,7 @@ config.json
 pack.png
 pack.mcmeta
 assets/
+parents.json
+*.csv
+*.temp
+spritesheet.json

@@ -117,7 +117,7 @@ ${C_GRAY}Fallback pack URL: ${C_BLUE}${fallback_pack:=null}
 
 # decompress our input pack
 status_message process "Decompressing input pack"
-unzip -q ${1}
+unzip -n -q "${1}"
 status_message completion "Input pack decompressed"
 
 # setup our initial config
@@ -944,7 +944,7 @@ fi
 
 # cleanup
 status_message critical "Deleting scratch files"
-rm -rf assets && rm -f pack.mcmeta && rm -f pack.png && rm -f parents.json && rm -f all.csv && rm -f pa.csv && rm -f README.md && rm -f README.txt && rm -f *.temp && rm -f spritesheet.json
+rm -rf assets && rm -f pack.mcmeta && rm -f pack.png && rm -f parents.json && rm -f all.csv && rm -f pa.csv && rm -f *.temp && rm -f spritesheet.json
 
 #status_message critical "Deleting unused entries from config"
 # jq 'map_values(del(.path, .element_parent, .parent, .geyserID))' config.json | sponge config.json
