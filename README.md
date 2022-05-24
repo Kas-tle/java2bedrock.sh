@@ -37,7 +37,7 @@ The \#### term corresponds to the numerical ID assigned to the model. These are 
 Also note that this script requires:
 - [jq](https://stedolan.github.io/jq/download/) (1.6+)
 - [sponge](https://joeyh.name/code/moreutils/)
-- [imagemagick](https://imagemagick.org/script/download.php) (7+)
+- [imagemagick](https://imagemagick.org/script/download.php) (6+)
 - [nodejs](https://nodejs.org/en/)
 - [spritesheet-js](https://www.npmjs.com/package/spritesheet-js)
 
@@ -46,10 +46,6 @@ It will exit if you fail to meet these dependencies. While the ultimate intentio
 Should you have any complaints about getting this to run because you "only use windows", do note that I was able to run this perfectly fine on a Mac running Parallels to run Windows to run WSL to run Ubuntu 20. Therefore, I am sure it is perfectly possible for you to get this working, regardless of your OS. I will gladly take such criticism only if you are willing to help develop this into a proper cross platform program. 
 
 ## Dependency Installation
-
-### A note about ImageMagick
-
-It seems many of the package repositories still install ImageMagick 6. If this occurs and the script fails for this reason, consider using [IMEI](https://github.com/SoftCreatR/imei/#one-step-automated-install) to build ImageMagick 7 from source.
 
 ### Debian, Ubuntu, & Mint
 ```sh
