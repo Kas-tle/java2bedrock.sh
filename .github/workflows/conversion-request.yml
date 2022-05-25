@@ -10,6 +10,7 @@ jobs:
     if: github.event.label.name == 'conversion'
     permissions: 
       issues: read
+    timeout-minutes: 2
     outputs:
       pack_url: ${{ steps.organize-inputs.outputs.PACK_URL }}
       default_pack_url: ${{ steps.organize-inputs.outputs.DEFAULT_PACK_URL }}
@@ -102,6 +103,7 @@ jobs:
   post-result:
     runs-on: ubuntu-latest
     needs: convert-pack
+    timeout-minutes: 2
     permissions: 
       issues: write
     steps:
@@ -128,6 +130,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [get-pack-info, convert-pack, post-result]
     if: always() && (needs.get-pack-info.result == 'failure' || needs.convert-pack.result == 'failure' || needs.convert-pack.result == 'post-result')
+    timeout-minutes: 2
     permissions: 
       issues: write
     steps:
