@@ -80,7 +80,7 @@ jobs:
           ATTACHABLE_MATERIAL: ${{ needs.get-pack-info.outputs.attachable_material }}
         run: |
           mkdir -p staging
-          cp convert.sh staging/
+          cp converter.sh staging/
           cd staging
           chmod +x converter.sh
           wget "${PACK_URL}" -O input_pack.zip
