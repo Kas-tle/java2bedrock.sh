@@ -1,0 +1,128 @@
+name: Conversion Request
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  get-pack-info:
+    runs-on: ubuntu-latest
+    if: github.event.label.name == 'conversion'
+    permissions: 
+      issues: read
+    outputs:
+      pack_url: ${{ steps.organize-inputs.outputs.PACK_URL }}
+      default_pack_url: ${{ steps.organize-inputs.outputs.DEFAULT_PACK_URL }}
+      merge_pack_url: ${{ steps.organize-inputs.outputs.MERGE_PACK_URL }}
+      default_assets_version: ${{ steps.organize-inputs.outputs.DEFAULT_ASSETS_VERSION }}
+      block_material: ${{ steps.organize-inputs.outputs.BLOCK_MATERIAL }}
+      attachable_material: ${{ steps.organize-inputs.outputs.ATTACHABLE_MATERIAL }}
+    steps:
+      - name: Issue Forms Body Parser
+        id: parse-issue
+        uses: zentered/issue-forms-body-parser@v1.4.3
+      - name: Organize Inputs
+        id: organize-inputs
+        env:
+          INPUT_DATA: ${{ JSON.stringify(steps.parse-issue.outputs.data) }}
+        run: |
+          jq -r -n --argjson data "${INPUT_DATA}" '
+          def test_input($input; $default):
+          if $input == "No response" then $default else $input end;
+          {
+            "pack_url": $data | .["java-pack-direct-download-url"].text,
+            "default_pack_url": test_input($data | .["default-pack-direct-download-url"].text; "null"),
+            "merge_pack_url": test_input($data | .["bedrock-merge-pack-direct-download-url"].text; "null"),
+            "default_assets_version": test_input($data | .["default-assets-version"].text; "null"),
+            "block_material": test_input($data | .["block-material"].text; "alpa_test"),
+            "attachable_material": test_input($data | .["attachable-material"]; "entity_alphatest_one_sided")
+          }' > inputs.json
+          echo "::set-output name=PACK_URL::$(jq -r '.pack_url' inputs.json)"
+          echo "::set-output name=DEFAULT_PACK_URL::$(jq -r '.default_pack_url' inputs.json)"
+          echo "::set-output name=MERGE_PACK_URL::$(jq -r '.merge_pack_url' inputs.json)"
+          echo "::set-output name=DEFAULT_ASSETS_VERSION::$(jq -r '.default_assets_version' inputs.json)"
+          echo "::set-output name=BLOCK_MATERIAL::$(jq -r '.block_material' inputs.json)"
+          echo "::set-output name=ATTACHABLE_MATERIAL::$(jq -r '.attachable_material' inputs.json)"
+  convert-pack:
+    runs-on: ubuntu-latest
+    needs: get-pack-info
+    permissions: 
+      contents: read
+      actions: write
+    timeout-minutes: 15
+    outputs:
+      run_id: ${{ steps.get-pack-info.outputs.pack_url }}
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Enable default asset cache
+        id: cache-default-assets
+        uses: actions/cache@v3
+        with:
+          path: /home/runner/work/java2bedrock.sh/java2bedrock.sh/staging/default_assets.zip
+          key: ${{ runner.os }}-v2-${{ needs.get-pack-info.outputs.default_assets_version }}
+      - name: Install NodeJS
+        uses: actions/setup-node@v3
+        with:
+          node-version: 17
+      - name: Install dependencies
+        run: |
+          sudo apt-get install -y moreutils zip
+          yarn global add spritesheet-js
+      - name: Convert Pack
+        id: convert-pack
+        continue-on-error: true
+        env: 
+          PACK_URL: ${{ needs.get-pack-info.outputs.pack_url }}
+          DEFAULT_PACK_URL: ${{ needs.get-pack-info.outputs.default_pack_url }}
+          MERGE_PACK_URL: ${{ needs.get-pack-info.outputs.merge_pack_url }}
+          DEFAULT_ASSETS_VERSION: ${{ needs.get-pack-info.outputs.default_assets_version }}
+          BLOCK_MATERIAL: ${{ needs.get-pack-info.outputs.block_material }}
+          ATTACHABLE_MATERIAL: ${{ needs.get-pack-info.outputs.attachable_material }}
+        run: |
+          mkdir -p staging
+          cp convert.sh staging/
+          cd staging
+          chmod +x converter.sh
+          wget "${PACK_URL}" -O input_pack.zip
+          MERGE_PACK_FILE="${MERGE_PACK_URL}"
+          if [ "${MERGE_PACK_URL}" != "null" ]; then
+            wget "${MERGE_PACK_URL}" -O merge_pack.zip
+            MERGE_PACK_FILE="merge_pack.zip"
+          fi
+          ./converter.sh input_pack.zip -w "false" -m ${MERGE_PACK_FILE} -a ${ATTACHABLE_MATERIAL} -b ${BLOCK_MATERIAL} -f ${DEFAULT_PACK_URL} -v ${DEFAULT_ASSETS_VERSION}
+      - name: Upload converted pack
+        uses: actions/upload-artifact@v3
+        with:
+          name: Pack Files
+          path: |
+            staging/target/packaged/geyser_behaviors.mcpack
+            staging/target/packaged/geyser_resources.mcpack
+            staging/target/packaged/geyser_addon.mcaddon
+            staging/target/geyser_mappings.json
+            staging/config.json
+  post-result:
+    runs-on: ubuntu-latest
+    needs: convert-pack
+    permissions: 
+      issues: write
+    steps:
+      - name: Post Result
+        id: post-result
+        uses: peter-evans/create-or-update-comment@v2
+        with:
+          issue-number: ${{ github.event.issue.number }}
+          body: |
+            :sparkles: The run has finished! :sparkles:
+            - Download the pack files from the [action run][1] page. :arrow_double_down:
+            - Upload the resource pack `geyser_resources.mcpack` to the `packs` folder of your Geyser folder. :file_folder:
+            - Upload the mappings file `geyser_mappings.json` to the `custom_mappings` folder of your Geyser folder. :page_with_curl:
+
+            If you notice issues with the converted files, please refer to the action log for errors and open a bud report if you believe there is an issue with the converter.
+
+            [1]: https://github.com/Kas-tle/java2bedrock.sh/actions/runs/${{ github.run_id}}
+          reactions: 'rocket'
+      - name: Close Issue
+        uses: peter-evans/close-issue@v2
+        with:
+          issue-number: ${{ github.event.issue.number }}
