@@ -59,7 +59,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: /home/runner/work/java2bedrock.sh/java2bedrock.sh/staging/default_assets.zip
-          key: ${{ runner.os }}-v2-${{ needs.get-pack-info.outputs.default_assets_version }}
+          key: ${{ runner.os }}-${{ needs.get-pack-info.outputs.default_assets_version }}
       - name: Install NodeJS
         uses: actions/setup-node@v3
         with:
