@@ -28,12 +28,12 @@ jobs:
           def test_input($input; $default):
           if $input == "*No response*" then $default else $input end;
           {
-            "pack_url": .["java-pack-direct-download-url"].text,
-            "default_pack_url": test_input(.["default-pack-direct-download-url"].text; "null"),
-            "merge_pack_url": test_input(.["bedrock-merge-pack-direct-download-url"].text; "null"),
+            "pack_url": .["java-pack-direct-download-url"].text[1:-1],
+            "default_pack_url": test_input(.["default-pack-direct-download-url"].text[1:-1]; " null "),
+            "merge_pack_url": test_input(.["bedrock-merge-pack-direct-download-url"].text[1:-1]; " null "),
             "default_assets_version": test_input(.["default-assets-version"].text; "null"),
             "block_material": test_input(.["block-material"].text; "alpa_test"),
-            "attachable_material": test_input(.["attachable-material"]; "entity_alphatest_one_sided")
+            "attachable_material": test_input(.["attachable-material"].text; "entity_alphatest_one_sided")
           }' > inputs.json
           echo "::set-output name=PACK_URL::$(jq -r '.pack_url' inputs.json)"
           echo "::set-output name=DEFAULT_PACK_URL::$(jq -r '.default_pack_url' inputs.json)"
