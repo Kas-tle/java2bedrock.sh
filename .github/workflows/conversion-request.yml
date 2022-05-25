@@ -114,7 +114,7 @@ jobs:
         with:
           issue-number: ${{ github.event.issue.number }}
           body: |
-            :sparkles: The run has finished! :sparkles:
+            ## :sparkles: The run has finished! :sparkles:
             - Download the pack files from the [action run][1] page. :arrow_double_down:
             - Upload the resource pack `geyser_resources.mcpack` to the `packs` folder of your Geyser folder. :file_folder:
             - Upload the mappings file `geyser_mappings.json` to the `custom_mappings` folder of your Geyser folder. :page_with_curl:
@@ -140,7 +140,7 @@ jobs:
         with:
           issue-number: ${{ github.event.issue.number }}
           body: |
-            :stop_sign: The run has failed :stop_sign:
+            ## :stop_sign: The run has failed :stop_sign:
             - Check the [action run][1] page for errors. :clipboard:
             - Status by job:
               - Get Pack Info: *${{ needs.get-pack-info.result }}*
