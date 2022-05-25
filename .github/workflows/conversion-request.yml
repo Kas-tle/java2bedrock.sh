@@ -26,7 +26,7 @@ jobs:
         env:
           INPUT_DATA: ${{ toJSON(steps.parse-issue.outputs.data) }}
         run: |
-          jq -r -n --argjson data "${INPUT_DATA}" '
+          echo "${INPUT_DATA}" | jq '
           def test_input($input; $default):
           if $input == "No response" then $default else $input end;
           {
