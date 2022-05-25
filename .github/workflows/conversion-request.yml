@@ -1,7 +1,8 @@
 name: Conversion Request
 on:
   issues:
-    types: [opened]
+    types:
+      - labeled
 
 jobs:
   get-pack-info:
