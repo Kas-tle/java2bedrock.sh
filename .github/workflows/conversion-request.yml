@@ -23,12 +23,10 @@ jobs:
         uses: zentered/issue-forms-body-parser@v1.4.3
       - name: Organize Inputs
         id: organize-inputs
-        env:
-          INPUT_DATA: ${{ toJSON(steps.parse-issue.outputs.data) }}
         run: |
-          echo "${INPUT_DATA}" | jq '
+          echo ${{ toJSON(steps.parse-issue.outputs.data) }} | jq '
           def test_input($input; $default):
-          if $input == "No response" then $default else $input end;
+          if $input == "*No response*" then $default else $input end;
           {
             "pack_url": .["java-pack-direct-download-url"].text,
             "default_pack_url": test_input(.["default-pack-direct-download-url"].text; "null"),
