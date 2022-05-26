@@ -90,5 +90,5 @@ wget https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64 && sudo 
 
 If you install spritesheet-js globally, but the script fails due to missing the dependency, ensure that the folder containing your global node modules is added to your path. If, after installing, `which spritesheet-js` returns no output, you may add global node modules to your path by:
 ```sh
-echo "export PATH=$PATH:$(npm config --global get prefix)/bin" >> ~/.bashrc && source ~/.bashr
+echo "export PATH=$PATH:$(npm config --global get prefix)/bin" >> ~/.bashrc && source ~/.bashrc
 ```
