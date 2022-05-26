@@ -81,8 +81,14 @@ npm i -g spritesheet-js
 ### Windows
 Impossible; consider [WSL](https://docs.microsoft.com/en-us/windows/wsl/install-win10).
 
-#### Special Notes for WSL
+#### Special Notes for WSL (Ubuntu)
+
 In general, packages on WSL seem to be a little wonky, and sometimes jq-1.5 will be installed, which will not work. To manually install jq-1.6 on WSL, at least for Ubuntu:
 ```sh
 wget https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64 && sudo chmod +x jq-linux64 && sudo mv jq-linux64 /usr/bin/jq
+```
+
+If you install spritesheet-js globally, but the script fails due to missing the dependency, ensure that the folder containing your global node modules is added to your path. If, after installing, `which spritesheet-js` returns no output, you may add global node modules to your path by:
+```sh
+echo "export PATH=$PATH:$(npm config --global get prefix)/bin" >> ~/.bashrc && source ~/.bashr
 ```
