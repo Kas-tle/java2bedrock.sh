@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Converter Help
+    url: https://github.com/Kas-tle/java2bedrock.sh/discussions/categories/converter-help
+    about: Help with setting up the converter.
+  - name: Feature Requests
+    url: https://github.com/Kas-tle/java2bedrock.sh/discussions/categories/feature-requests
+    about: Discuss ideas for features to be added to the converter.
