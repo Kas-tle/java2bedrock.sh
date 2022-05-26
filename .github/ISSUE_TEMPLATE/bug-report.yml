@@ -1,0 +1,39 @@
+name: Bug Report
+description: Report a bug with the converter
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        In order to file a bug report, you must first attempt to convert your pack via the [pack conversion action](https://github.com/Kas-tle/java2bedrock.sh/issues/new?assignees=&labels=conversion&template=pack-conversion.yml&title=%5BPack%5D%3A+) and include a link to the resulting issue. Any issues without such a link will be automatically rejected. 
+        If you simply need help with running the converter locally, please use the [Converter Help](https://github.com/Kas-tle/java2bedrock.sh/discussions/categories/converter-help) category on the discussions page.
+  - type: input
+    id: conversion-issue-link
+    attributes:
+      label: Conversion Issue Link
+      description: Please provide a direct link to the issue that contains the conversion result.
+      placeholder: e.g. https://github.com/Kas-tle/java2bedrock.sh/issues/15
+    validations:
+      required: true
+  - type: textarea
+    id: expected-output
+    attributes:
+      label: Expected Output
+      description: Please describe in detail what the expected output of the converter should be with the given pack. Please be as specific as possible.
+    validations:
+      required: true
+  - type: textarea
+    id: actual-output
+    attributes:
+      label: Actual Output
+      description: Please describe in detail what the actual output of the converter was with the given pack. Please be as specific as possible with regards to what went wrong. Where possible, refer to and reference the action log.
+    validations:
+      required: true
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Please provide any additional information that you feel is relevant to the bug in question.
+    validations:
+      required: false
