@@ -70,7 +70,7 @@ jobs:
           yarn global add spritesheet-js
       - name: Convert Pack
         id: convert-pack
-        continue-on-error: true
+        continue-on-error: false
         env: 
           PACK_URL: ${{ needs.get-pack-info.outputs.pack_url }}
           DEFAULT_PACK_URL: ${{ needs.get-pack-info.outputs.default_pack_url }}
