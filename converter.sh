@@ -172,7 +172,32 @@ def maxdur($input):
   "netherite_hoe": 2031,
   "netherite_pickaxe": 2031,
   "netherite_shovel": 2031,
-  "netherite_sword": 2031
+  "netherite_sword": 2031,
+  "leather_helmet": 55,
+  "leather_chestplate": 80,
+  "leather_leggings": 75,
+  "leather_boots": 65,
+  "gold_helmet": 77,
+  "gold_chestplate": 112,
+  "gold_leggings": 105,
+  "gold_boots": 91,
+  "chainmail_helmet": 165,
+  "chainmail_chestplate": 240,
+  "chainmail_leggings": 225,
+  "chainmail_boots": 195,
+  "iron_helmet": 165,
+  "iron_chestplate": 240,
+  "iron_leggings": 225,
+  "iron_boots": 195,
+  "diamond_helmet": 363,
+  "diamond_chestplate": 528,
+  "diamond_leggings": 495,
+  "diamond_boots": 429,
+  "netherite_helmet": 407,
+  "netherite_chestplate": 592,
+  "netherite_leggings": 555,
+  "netherite_boots": 481,
+  "turtle_helmet": 275
 } | .[$input] // 1)
 ;
 
