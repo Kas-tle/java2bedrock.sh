@@ -50,6 +50,10 @@ user_input () {
   fi
 }
 
+wait_for_jobs () {
+  while test $(jobs -p | wc -w) -ge "$((2*$(nproc)))"; do wait -n; done
+}
+
 # ensure input pack exists
 if ! test -f "${1}"; then
    status_message error "Input resource pack ${1} is not in this directory"
@@ -890,6 +894,7 @@ do
       status_message completion "${gid} converted\n$(ProgressBar ${tot_pos} ${_end})"
       echo
    }
+   wait_for_jobs
    convert_model ${file} ${gid} ${generated} &
 
 done < all.csv
