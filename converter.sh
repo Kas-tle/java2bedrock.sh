@@ -991,7 +991,7 @@ jq '
       }
       + (if .value.nbt.CustomModelData then {"custom_model_data": (.value.nbt.CustomModelData)} else {} end)
       + (if .value.nbt.Damage then {"damage_predicate": (.value.nbt.Damage)} else {} end)
-      + (if .value.nbt.Unbreakable then {"unbreaking": (.value.nbt.Unbreakable)} else {} end)
+      + (if .value.nbt.Unbreakable then {"unbreakable": (.value.nbt.Unbreakable)} else {} end)
     ]
   }
 ) 
@@ -999,7 +999,7 @@ jq '
 | group_by(.key)[] 
 | {(.[0].key) : map(.value) | add}] | add) as $mappings
 | {
-    "format_version": "1.0.0",
+    "format_version": "1",
     "items": $mappings
   }
 ' config.json | sponge ./target/geyser_mappings.json
