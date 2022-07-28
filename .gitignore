@@ -1,6 +1,7 @@
 target/
 *.zip
 config.json
+test_config.json
 pack.png
 pack.mcmeta
 assets/
