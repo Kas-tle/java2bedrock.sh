@@ -248,7 +248,7 @@ map_values(if real_file(.path) != null then . else empty end)
 
 # get a bash array of all our input models
 status_message process "Creating a bash array for remaing models in our predicate config"
-model_array=($(jq -r '.[].path' config.json))
+model_array=($(jq -r '[.[].path] | unique | .[]' config.json))
 
 # find initial parental information
 status_message process "Doing an initial sweep for level 1 parentals"
