@@ -130,79 +130,28 @@ status_message process "Iterating through all vanilla associated model JSONs to 
 if test -d "./assets/minecraft/models/item"; then confarg1="./assets/minecraft/models/item/*.json"; fi
 if test -d "./assets/minecraft/models/block"; then confarg2="./assets/minecraft/models/block/*.json"; fi
 
+# Download geyser mappings
+status_message process "Downloading the latest geyser item mappings"
+printf "\e[3m\e[37m"
+echo
+wget -nv --show-progress -O item_mappings.json https://raw.githubusercontent.com/GeyserMC/mappings/master/items.json
+echo
+wget -nv --show-progress -O item_texture.json https://raw.githubusercontent.com/Kas-tle/java2bedrockMappings/main/item_texture.json
+echo
+printf "${C_CLOSE}"
 
-jq -n '[inputs | {(input_filename | sub("(.+)/(?<itemname>.*?).json"; .itemname)): .overrides?[]?}] |
+jq --slurpfile item_texture item_texture.json --slurpfile item_mappings item_mappings.json -n '[inputs | {(input_filename | sub("(.+)/(?<itemname>.*?).json"; .itemname)): .overrides?[]?}] |
 
 def maxdur($input):
-({
-  "carrot_on_a_stick": 25,
-  "golden_axe": 32,
-  "golden_hoe": 32,
-  "golden_pickaxe": 32,
-  "golden_shovel": 32,
-  "golden_sword": 32,
-  "wooden_axe": 59,
-  "wooden_hoe": 59,
-  "wooden_pickaxe":59,
-  "wooden_shovel":59,
-  "wooden_sword": 59,
-  "fishing_rod": 64,
-  "flint_and_steel": 64,
-  "warped_fungus_on_a_stick": 100,
-  "sparkler": 100,
-  "glow_stick": 100,
-  "stone_axe": 131,
-  "stone_hoe": 131,
-  "stone_pickaxe":131,
-  "stone_shovel":131,
-  "stone_sword": 131,
-  "shears": 238,
-  "iron_axe": 250,
-  "iron_hoe": 250,
-  "iron_pickaxe": 250,
-  "iron_shovel": 250,
-  "iron_sword": 250,
-  "trident": 250,
-  "crossbow": 326,
-  "shield": 336,
-  "bow": 384,
-  "elytra": 432,
-  "diamond_axe": 1561,
-  "diamond_hoe": 1561,
-  "diamond_pickaxe": 1561,
-  "diamond_shovel": 1561,
-  "diamond_sword": 1561,
-  "netherite_axe": 2031,
-  "netherite_hoe": 2031,
-  "netherite_pickaxe": 2031,
-  "netherite_shovel": 2031,
-  "netherite_sword": 2031,
-  "leather_helmet": 55,
-  "leather_chestplate": 80,
-  "leather_leggings": 75,
-  "leather_boots": 65,
-  "gold_helmet": 77,
-  "gold_chestplate": 112,
-  "gold_leggings": 105,
-  "gold_boots": 91,
-  "chainmail_helmet": 165,
-  "chainmail_chestplate": 240,
-  "chainmail_leggings": 225,
-  "chainmail_boots": 195,
-  "iron_helmet": 165,
-  "iron_chestplate": 240,
-  "iron_leggings": 225,
-  "iron_boots": 195,
-  "diamond_helmet": 363,
-  "diamond_chestplate": 528,
-  "diamond_leggings": 495,
-  "diamond_boots": 429,
-  "netherite_helmet": 407,
-  "netherite_chestplate": 592,
-  "netherite_leggings": 555,
-  "netherite_boots": 481,
-  "turtle_helmet": 275
-} | .[$input] // 1)
+($item_mappings[] |
+[to_entries | map(.key as $key | .value | .java_identifer = $key) | .[] | select(.max_damage)] 
+| map({(.java_identifer | split(":") | .[1]): (.max_damage)}) 
+| add
+| .[$input] // 1)
+;
+
+def bedrocktexture($input):
+($item_texture[] | .[$input] // {"icon": "camera", "frame": 0})
 ;
 
 def namespace:
@@ -215,11 +164,12 @@ if contains(":") then sub("\\:(.+)"; "") else "minecraft" end
     | (if .value.predicate.custom_model_data then .value.predicate.custom_model_data else null end) as $custom_model_data |
   {
     "item": .key,
-      "nbt": ({
-        "Damage": $damage,
-        "Unbreakable": $unbreakable,
-        "CustomModelData": $custom_model_data
-      }),
+    "bedrock_icon": bedrocktexture(.key),
+    "nbt": ({
+      "Damage": $damage,
+      "Unbreakable": $unbreakable,
+      "CustomModelData": $custom_model_data
+    }),
     "path": ("./assets/" + (.value.model | namespace) + "/models/" + (.value.model | sub("(.*?)\\:"; "")) + ".json"),
     "generated": "false"
 
@@ -375,9 +325,6 @@ jq -nc '
   "padding": 8,
   "num_mip_levels": 4,
   "texture_data": {
-    "gmdl_atlas": {
-      "textures": "textures/geyser/geyser_custom/gmdl_atlas"
-      }
   }
 }
 ' | sponge ./target/rp/textures/terrain_texture.json
@@ -453,6 +400,12 @@ fi
 
 # generate a fallback texture
 convert -size 16x16 xc:\#FFFFFF ./assets/minecraft/textures/0.png
+
+# make sure we crop all mcmeta associated png files
+status_message process "Cropping animated textures"
+for i in $(find ./assets/**/textures -type f -name "*.mcmeta" | sed 's/\.mcmeta//'); do 
+convert ${i} -set option:distort:viewport "%[fx:min(w,h)]x%[fx:min(w,h)]" -distort affine "0,0 0,0" ${i}
+done
 
 status_message completion "Initial pack setup complete\n"
 
@@ -541,12 +494,6 @@ do
 
 done < pa.csv
 
-# make sure we crop all mcmeta associated png files
-status_message process "Cropping animated textures"
-for i in $(find ./assets/**/textures -type f -name "*.mcmeta" | sed 's/\.mcmeta//'); do 
-convert ${i} -set option:distort:viewport "%[fx:min(w,h)]x%[fx:min(w,h)]" -distort affine "0,0 0,0" ${i}
-done
-
 status_message process "Compiling final model list"
 # get our final 3d model list from the config
 model_list=( $(jq -r '.[] | select(.generated == "false") | .path' config.json) )
@@ -554,18 +501,40 @@ model_list=( $(jq -r '.[] | select(.generated == "false") | .path' config.json) 
 # get our final texture list to be atlased
 # get a bash array of all texture files in our resource pack
 status_message process "Generating an array of all model PNG files to crosscheck with our atlas"
-jq -n '$ARGS.positional' --args $(find ./assets/**/textures -type f -name '*.png') | sponge textures1.temp
+jq -n '$ARGS.positional' --args $(find ./assets/**/textures -type f -name '*.png') | sponge all_textures.temp
 # get bash array of all texture files listed in our models
-status_message process "Generating an array for the master texture atlas"
-jq -s 'def namespace: if contains(":") then sub("\\:(.+)"; "") else "minecraft" end; [.[].textures[]?] | unique | map("./assets/" + (. | namespace) + "/textures/" + (. | sub("(.*?)\\:"; "")) + ".png")' ${model_list[@]} | sponge textures2.temp
-# find the union of all texture files listed in our models and all texture files in our resource pack
-texture_list=( $(jq -s -r '((.[1] - (.[1] - .[0])) + ["./assets/minecraft/textures/0.png"]) | .[]' textures1.temp textures2.temp) )
+status_message process "Generating union atlas arrays for all model textures"
+jq -s '
+def namespace: 
+  if contains(":") then sub("\\:(.+)"; "") else "minecraft" end; 
+[.[]| [.textures[]] | unique] 
+| map(map("./assets/" + (. | namespace) + "/textures/" + (. | sub("(.*?)\\:"; "")) + ".png"))
+' ${model_list[@]} | sponge union_atlas.temp
+jq '
+def intersects(a;b): any(a[]; . as $x | any(b[]; . == $x));
 
-# generate our atlas from the final texture list
-status_message process "Generating sprite sheet"
-spritesheet-js -f json --fullpath  ${texture_list[@]} > /dev/null 2>&1
-status_message completion "Sprite sheet successfully generated"
-mv spritesheet.png ./target/rp/textures/geyser/geyser_custom/gmdl_atlas.png
+def mapatlas(set):
+(set | unique) as $unique_set
+| (map(if intersects(.; $unique_set) then . else empty end) | add + $unique_set | unique) as $new_set
+| map(if intersects(.; $new_set) then empty else . end) + [$new_set];
+
+[["./assets/minecraft/textures/0.png"]] +
+reduce .[] as $entry ([]; mapatlas($entry))
+' union_atlas.temp | sponge union_atlas.temp
+total_union_atlas=($(jq -r 'length - 1' union_atlas.temp))
+
+mkdir spritesheet
+status_message process "Generating $((1+${total_union_atlas})) sprite sheets..."
+for i in $(seq 0 ${total_union_atlas})
+do
+  # find the union of all texture files listed in this atlas and all texture files in our resource pack
+  texture_list=( $(jq -s --arg index "${i}" -r '(.[1][($index | tonumber)] - .[0] | length > 0) as $fallback_needed | ((.[1][($index | tonumber)] - (.[1][($index | tonumber)] - .[0])) + (if $fallback_needed then ["./assets/minecraft/textures/0.png"] else [] end)) | .[]' all_textures.temp union_atlas.temp) )
+  status_message process "Generating sprite sheet ${i} of ${total_union_atlas}"
+  spritesheet-js -f json --name spritesheet/${i} --fullpath ${texture_list[@]} > /dev/null 2>&1
+  jq --arg atlas_index "${i}" '.texture_data += {("gmdl_atlas_" + $atlas_index): {"textures": ("textures/geyser/geyser_custom/" + $atlas_index)}}' ./target/rp/textures/terrain_texture.json | sponge ./target/rp/textures/terrain_texture.json
+done
+status_message completion "All sprite sheets generated"
+mv spritesheet/*.png ./target/rp/textures/geyser/geyser_custom
 
 # begin conversion
 jq -r '.[] | [.path, .geyserID, .generated] | @tsv | gsub("\\t";",")' config.json | sponge all.csv
@@ -577,20 +546,22 @@ do
     local gid=${2}
     local generated=${3}
 
+    # find which texture atlas we will be using if not generated
+    if [[ ${generated} = "false" ]]
+    then
+      local atlas_index=$(jq -r -s 'def namespace: if contains(":") then sub("\\:(.+)"; "") else "minecraft" end; def intersects(a;b): any(a[]; . as $x | any(b[]; . == $x)); (.[0] | [.textures[]] | map("./assets/" + (. | namespace) + "/textures/" + (. | sub("(.*?)\\:"; "")) + ".png")) as $inp | [(.[1] | (map(if intersects(.;$inp) then . else empty end)[])) as $entry | .[1] | to_entries[] | select(.value == $entry).key][0] // 0' ${file} union_atlas.temp)
+    else
+      local atlas_index=0
+    fi
+
     status_message process "Starting conversion of model with GeyserID ${gid}"
-    jq --slurpfile atlas spritesheet.json --arg generated "${generated}" --arg binding "c.item_slot == 'head' ? 'head' : q.item_slot_to_bone_name(c.item_slot)" --arg model_name "${gid}" -c '
+    jq --slurpfile atlas spritesheet/${atlas_index}.json --arg generated "${generated}" --arg binding "c.item_slot == 'head' ? 'head' : q.item_slot_to_bone_name(c.item_slot)" --arg model_name "${gid}" -c '
     .textures as $texture_list |
-
     def namespace: if contains(":") then sub("\\:(.+)"; "") else "minecraft" end;
-
     def totexture($input): ($texture_list[($input[1:])]? // ([$texture_list[]][0]));
-
     def topath($input): ("./assets/" + ($input | namespace) + "/textures/" + ($input | sub("(.*?)\\:"; "")) + ".png");
-
     def texturedata($input): $atlas[] | .frames | (.[topath(totexture($input))] // ."./assets/minecraft/textures/0.png");
-
     def roundit: (.*10000 | round) / 10000;
-
     def element_array:
         if .elements then (.elements | map({
         "origin": [((-.to[0] + 8) | roundit), ((.from[1]) | roundit), ((.from[2] - 8) | roundit)],
@@ -624,7 +595,6 @@ do
           })
       }) | walk( if type == "object" then with_entries(select(.value != null)) else . end)) else {} end
       ;
-
       def pivot_groups:
       if .elements then ((element_array) as $element_array |
       [[.elements[].rotation] | unique | .[] | select (.!=null)]
@@ -638,7 +608,6 @@ do
         "cubes": [($element_array | .[] | select(.rotation == $i_rot and .pivot == $i_piv))]
       }))) else {} end
       ;
-
       {
         "format_version": "1.16.0",
         "minecraft:geometry": [{
@@ -793,7 +762,7 @@ do
       # generate our bp block definition if this is a 3D item
       if [[ ${generated} = false ]]
       then
-        jq -c -n --arg block_material "${block_material}" --arg geyser_id "${gid}" '
+        jq -c -n --arg atlas_index "${atlas_index}" --arg block_material "${block_material}" --arg geyser_id "${gid}" '
         {
             "format_version": "1.16.100",
             "minecraft:block": {
@@ -803,7 +772,7 @@ do
                 "components": {
                     "minecraft:material_instances": {
                         "*": {
-                            "texture": "gmdl_atlas",
+                            "texture": ("gmdl_atlas_" + $atlas_index),
                             "render_method": $block_material,
                             "face_dimming": false,
                             "ambient_occlusion": false
@@ -845,7 +814,7 @@ do
       fi
 
       # generate our rp attachable definition
-      jq -c -n --arg generated "${generated}" --arg attachable_material "${attachable_material}" --arg v_main "v.main_hand = c.item_slot == 'main_hand';" --arg v_off "v.off_hand = c.item_slot == 'off_hand';" --arg v_head "v.head = c.item_slot == 'head';" --arg model_name "${gid}" '
+      jq -c -n --arg generated "${generated}" --arg atlas_index "${atlas_index}" --arg attachable_material "${attachable_material}" --arg v_main "v.main_hand = c.item_slot == 'main_hand';" --arg v_off "v.off_hand = c.item_slot == 'off_hand';" --arg v_head "v.head = c.item_slot == 'head';" --arg model_name "${gid}" '
 
       {
         "format_version": "1.10.0",
@@ -857,7 +826,7 @@ do
               "enchanted": $attachable_material
             },
             "textures": {
-              "default": (if $generated == "true" then ("textures/geyser/geyser_custom/" + $model_name) else "textures/geyser/geyser_custom/gmdl_atlas" end),
+              "default": (if $generated == "true" then ("textures/geyser/geyser_custom/" + $model_name) else ("textures/geyser/geyser_custom/" + $atlas_index) end),
               "enchanted": "textures/misc/enchanted_item_glint"
             },
             "geometry": {
@@ -974,7 +943,7 @@ fi
 
 # cleanup
 status_message critical "Deleting scratch files"
-rm -rf assets && rm -f pack.mcmeta && rm -f pack.png && rm -f parents.json && rm -f all.csv && rm -f pa.csv && rm -f *.temp && rm -f spritesheet.json
+rm -rf spritesheet && rm -rf assets && rm -f pack.mcmeta && rm -f pack.png && rm -f parents.json && rm -f all.csv && rm -f pa.csv && rm -f *.temp && rm -f item_mappings.json && rm -f item_texture.json
 
 #status_message critical "Deleting unused entries from config"
 # jq 'map_values(del(.path, .element_parent, .parent, .geyserID))' config.json | sponge config.json
@@ -987,8 +956,9 @@ jq '
       {
         "name": .key,
         "allow_offhand": true,
-        "icon": (if .value.generated == "false" then .value.item else .key end)
+        "icon": (if .value.generated == "false" then .value.item else .value.bedrock_icon.icon end)
       }
+      + (if .value.nbt.generated then {"frame": (.value.bedrock_icon.frame)} else {} end)
       + (if .value.nbt.CustomModelData then {"custom_model_data": (.value.nbt.CustomModelData)} else {} end)
       + (if .value.nbt.Damage then {"damage_predicate": (.value.nbt.Damage)} else {} end)
       + (if .value.nbt.Unbreakable then {"unbreakable": (.value.nbt.Unbreakable)} else {} end)

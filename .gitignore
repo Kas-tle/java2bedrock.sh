@@ -9,3 +9,6 @@ parents.json
 *.csv
 *.temp
 spritesheet.json
+item_mappings.json
+item_texture.json 
+spritesheet/
