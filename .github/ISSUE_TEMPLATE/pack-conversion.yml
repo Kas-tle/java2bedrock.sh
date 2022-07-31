@@ -52,7 +52,7 @@ body:
     attributes:
       label: Block Material
       description: | 
-        Please provide a block material to be used in the script. If one is not selected, `alpa_test` will be used. 
+        Please provide a block material to be used in the script. If one is not selected, `alpha_test` will be used. 
         See the [Bedrock Wiki](https://wiki.bedrock.dev/blocks/block-materials.html) for more info.
           - `opaque`: no support for transparent or translucent pixels and renders only on outside faces
           - `alpha_test`: support for transparent pixels and renders only on outside faces
