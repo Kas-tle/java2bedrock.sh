@@ -507,7 +507,7 @@ status_message process "Generating union atlas arrays for all model textures"
 jq -s '
 def namespace: 
   if contains(":") then sub("\\:(.+)"; "") else "minecraft" end; 
-[.[]| [.textures[]] | unique] 
+[.[]| [.textures[]?] | unique] 
 | map(map("./assets/" + (. | namespace) + "/textures/" + (. | sub("(.*?)\\:"; "")) + ".png"))
 ' ${model_list[@]} | sponge union_atlas.temp
 jq '
