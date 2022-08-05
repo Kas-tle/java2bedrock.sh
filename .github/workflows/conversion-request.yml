@@ -95,7 +95,6 @@ jobs:
         with:
           name: Pack Files
           path: |
-            staging/target/packaged/geyser_behaviors.mcpack
             staging/target/packaged/geyser_resources.mcpack
             staging/target/packaged/geyser_addon.mcaddon
             staging/target/geyser_mappings.json
