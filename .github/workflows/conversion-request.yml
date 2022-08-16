@@ -27,7 +27,7 @@ jobs:
         run: |
           echo ${{ toJSON(steps.parse-issue.outputs.data) }} | jq '
           def test_input($input; $default):
-          if $input == "*No response*" then $default else $input end;
+          if $input == "*No response*" then $default else ($input | gsub("\\\\";""))  end;
           {
             "pack_url": .["java-pack-direct-download-url"].text[1:-1],
             "default_pack_url": test_input(.["default-pack-direct-download-url"].text; " null ")[1:-1],
