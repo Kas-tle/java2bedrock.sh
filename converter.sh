@@ -320,7 +320,7 @@ jq -c --arg pack_desc "${pack_desc}" --arg uuid1 "${uuid1}" --arg uuid3 "${uuid3
 status_message process "Generating resource pack terrain texture definition"
 jq -nc '
 {
-  "resource_pack_name": "vanilla",
+  "resource_pack_name": "geyser_custom",
   "texture_name": "atlas.terrain",
   "padding": 8,
   "num_mip_levels": 4,
@@ -333,7 +333,7 @@ jq -nc '
 status_message process "Generating resource pack item texture definition"
 jq -nc '
 {
-  "resource_pack_name": "vanilla",
+  "resource_pack_name": "geyser_custom",
   "texture_name": "atlas.items",
   "texture_data": {}
 }
@@ -906,8 +906,8 @@ if test -f ${merge_input}; then
     status_message process "Merging terrain texture files"
     jq -s '
     {
-      "resource_pack_name": "vanilla",
-      "texture_name": "atlas.terrain",
+      "resource_pack_name": "geyser_custom",
+      "texture_name": "atlas.items",
       "padding": 8, 
       "num_mip_levels": 4,
       "texture_data": (.[1].texture_data + .[0].texture_data)
@@ -918,8 +918,8 @@ if test -f ${merge_input}; then
     status_message process "Merging item texture files"
     jq -s '
     {
-      "resource_pack_name": "vanilla",
-      "texture_name": "atlas.terrain",
+      "resource_pack_name": "geyser_custom",
+      "texture_name": "atlas.items",
       "texture_data": (.[1].texture_data + .[0].texture_data)
     }
     ' ./target/rp/textures/item_texture.json ./inputbedrockpack/textures/item_texture.json | sponge ./target/rp/textures/item_texture.json
