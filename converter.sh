@@ -962,9 +962,9 @@ jq '
       {
         "name": .key,
         "allow_offhand": true,
-        "icon": (if .value.generated == "true" then .value.item else .value.bedrock_icon.icon end)
+        "icon": (if .value.generated == "true" then .key else .value.bedrock_icon.icon end)
       }
-      + (if .value.nbt.generated then {"frame": (.value.bedrock_icon.frame)} else {} end)
+      + (if (.value.generated == "false") then {"frame": (.value.bedrock_icon.frame)} else {} end)
       + (if .value.nbt.CustomModelData then {"custom_model_data": (.value.nbt.CustomModelData)} else {} end)
       + (if .value.nbt.Damage then {"damage_predicate": (.value.nbt.Damage)} else {} end)
       + (if .value.nbt.Unbreakable then {"unbreakable": (.value.nbt.Unbreakable)} else {} end)
