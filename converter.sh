@@ -410,7 +410,7 @@ convert -size 16x16 xc:\#FFFFFF ./assets/minecraft/textures/0.png
 # make sure we crop all mcmeta associated png files
 status_message process "Cropping animated textures"
 for i in $(find ./assets/**/textures -type f -name "*.mcmeta" | sed 's/\.mcmeta//'); do 
-convert ${i} -set option:distort:viewport "%[fx:min(w,h)]x%[fx:min(w,h)]" -distort affine "0,0 0,0" -define png:format=png8 ${i} 2> /dev/null
+convert ${i} -set option:distort:viewport "%[fx:min(w,h)]x%[fx:min(w,h)]" -distort affine "0,0 0,0" -define png:format=png8 -clamp ${i} 2> /dev/null
 done
 
 status_message completion "Initial pack setup complete\n"
