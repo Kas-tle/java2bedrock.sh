@@ -124,6 +124,12 @@ status_message process "Decompressing input pack"
 unzip -n -q "${1}"
 status_message completion "Input pack decompressed"
 
+if [ ! -f pack.mcmeta ]
+then
+	status_message error "Invalid resource pack! The pack.mcmeta file does not exist. Is the resource pack improperly compressed in an enclosing folder?"
+  exit 1
+fi
+
 # setup our initial config
 status_message process "Iterating through all vanilla associated model JSONs to generate initial predicate config\nOn a large pack, this may take some time...\n"
 
@@ -404,7 +410,7 @@ convert -size 16x16 xc:\#FFFFFF ./assets/minecraft/textures/0.png
 # make sure we crop all mcmeta associated png files
 status_message process "Cropping animated textures"
 for i in $(find ./assets/**/textures -type f -name "*.mcmeta" | sed 's/\.mcmeta//'); do 
-convert ${i} -set option:distort:viewport "%[fx:min(w,h)]x%[fx:min(w,h)]" -distort affine "0,0 0,0" ${i}
+convert ${i} -set option:distort:viewport "%[fx:min(w,h)]x%[fx:min(w,h)]" -distort affine "0,0 0,0" ${i} 2> /dev/null
 done
 
 status_message completion "Initial pack setup complete\n"
