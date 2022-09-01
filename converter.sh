@@ -898,6 +898,10 @@ status_message completion "en_US and en_GB lang files written\n"
 #    status_message completion "Image compression complete"
 #    echo
 #fi
+# Ensure images are in the correct color space
+status_message process "Setting all images to png8"
+mogrify -define png:format=png8 ./target/rp/textures/geyser/geyser_custom/*.png
+status_message completion "All images set to png8"
 
 # attempt to merge with existing pack if input was provided
 if test -f ${merge_input}; then
