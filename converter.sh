@@ -328,8 +328,6 @@ jq -nc '
 {
   "resource_pack_name": "geyser_custom",
   "texture_name": "atlas.terrain",
-  "padding": 8,
-  "num_mip_levels": 4,
   "texture_data": {
   }
 }
@@ -914,8 +912,6 @@ if test -f ${merge_input}; then
     {
       "resource_pack_name": "geyser_custom",
       "texture_name": "atlas.items",
-      "padding": 8, 
-      "num_mip_levels": 4,
       "texture_data": (.[1].texture_data + .[0].texture_data)
     }
     ' ./target/rp/textures/terrain_texture.json ./inputbedrockpack/textures/terrain_texture.json | sponge ./target/rp/textures/terrain_texture.json
