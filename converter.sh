@@ -982,10 +982,11 @@ jq '
 
 status_message process "Compressing output packs"
 mkdir ./target/packaged
-cd ./target/rp > /dev/null && zip -rq8 geyser_resources.mcpack . -x "*/.*" -x "textures/terrain_texture.json" && cd ../.. > /dev/null && mv ./target/rp/geyser_resources.mcpack ./target/packaged/geyser_resources.mcpack
 cd ./target/rp > /dev/null && zip -rq8 geyser_resources_preview.mcpack . -x "*/.*" && cd ../.. > /dev/null && mv ./target/rp/geyser_resources_preview.mcpack ./target/packaged/geyser_resources_preview.mcpack
 cd ./target/bp > /dev/null && zip -rq8 geyser_behaviors_preview.mcpack . -x "*/.*" && cd ../.. > /dev/null && mv ./target/bp/geyser_behaviors_preview.mcpack ./target/packaged/geyser_behaviors_preview.mcpack
 cd ./target/packaged > /dev/null && zip -rq8 geyser_addon.mcaddon . -i "*_preview.mcpack" && cd ../.. > /dev/null
+jq 'delpaths([paths | select(.[-1] | strings | startswith("gmdl_atlas_"))])' ./target/rp/textures/terrain_texture.json | sponge ./target/rp/textures/terrain_texture.json
+cd ./target/rp > /dev/null && zip -rq8 geyser_resources.mcpack . -x "*/.*" && cd ../.. > /dev/null && mv ./target/rp/geyser_resources.mcpack ./target/packaged/geyser_resources.mcpack
 mkdir ./target/unpackaged
 mv ./target/rp ./target/unpackaged/rp && mv ./target/bp ./target/unpackaged/bp
 
