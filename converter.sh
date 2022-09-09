@@ -948,10 +948,6 @@ if test -f ${merge_input}; then
   status_message completion "Input bedrock pack merged with generated assets\n"
 fi
 
-# cleanup
-status_message critical "Deleting scratch files"
-rm -rf spritesheet && rm -rf assets && rm -f pack.mcmeta && rm -f pack.png && rm -f parents.json && rm -f all.csv && rm -f pa.csv && rm -f *.temp && rm -f item_mappings.json && rm -f item_texture.json
-
 #status_message critical "Deleting unused entries from config"
 # jq 'map_values(del(.path, .element_parent, .parent, .geyserID))' config.json | sponge config.json
 status_message process "Creating Geyser mappings in target directory"
@@ -1026,6 +1022,10 @@ if [ -f sprites.json ]; then
   }
   ' ./target/geyser_mappings.json sprites.json | sponge ./target/geyser_mappings.json
 fi
+
+# cleanup
+status_message critical "Deleting scratch files"
+rm -rf spritesheet && rm -rf assets && rm -f pack.mcmeta && rm -f sprites.json && rm -f pack.png && rm -f parents.json && rm -f all.csv && rm -f pa.csv && rm -f *.temp && rm -f item_mappings.json && rm -f item_texture.json
 
 status_message process "Compressing output packs"
 mkdir ./target/packaged
