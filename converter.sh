@@ -898,6 +898,7 @@ status_message completion "en_US and en_GB lang files written\n"
 #    status_message completion "Image compression complete"
 #    echo
 #fi
+
 # Ensure images are in the correct color space
 status_message process "Setting all images to png8"
 mogrify -define png:format=png8 ./target/rp/textures/geyser/geyser_custom/*.png
@@ -979,6 +980,52 @@ jq '
     "items": $mappings
   }
 ' config.json | sponge ./target/geyser_mappings.json
+
+# Add sprites if sprites.json exists in the root pack
+if [ -f sprites.json ]; then
+  status_message process "Adding provided sprite paths from sprites.json"
+  jq -s '
+  .[1] as $ind 
+  | (.[0] 
+  | map_values(
+    .nbt.CustomModelData as $custom_model_data
+    | .nbt.Damage as $damage
+    | .nbt.Unbreakable as $unbreakable
+    | {
+        "textures": ($ind[(.item)][]?) 
+        | select(.custommodeldata == ($custom_model_data))
+        | select(.damage == ($damage))
+        | select(.unbreakable == ($unbreakable))
+        | .sprite
+      }
+    )) as $icon_sprites
+  | .[2] 
+  | .texture_data += $icon_sprites
+  ' config.json sprites.json ./target/rp/textures/item_texture.json | sponge ./target/rp/textures/item_texture.json
+  
+  jq -s '
+  {
+  "format_version": "1",
+  "items": 
+    (.[1] as $ind | .[0].items | to_entries | map(
+    (.key | split(":")[1]) as $item
+    | .value | {("minecraft:" + $item): (map(
+      .name as $name
+      | .icon as $icon
+      | .custom_model_data as $custom_model_data
+      | .damage_predicate as $damage_predicate
+      | .unbreakable as $unbreakable
+      | (if (
+          (([((($ind[($item)][])? | .custommodeldata) // null)] | index($custom_model_data)) == null) or
+          (([((($ind[($item)][])? | .damage) // null)] | index($damage_predicate)) == null) or
+          (([((($ind[($item)][])? | .unbreakable) // null)] | index($unbreakable)) == null)
+        ) then $icon else $name end) as $new_icon
+      | .icon = $new_icon
+    ))}
+    ) | add)
+  }
+  ' ./target/geyser_mappings.json sprites.json | sponge ./target/geyser_mappings.json
+fi
 
 status_message process "Compressing output packs"
 mkdir ./target/packaged
