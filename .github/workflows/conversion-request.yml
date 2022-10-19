@@ -21,7 +21,7 @@ jobs:
     steps:
       - name: Issue Forms Body Parser
         id: parse-issue
-        uses: zentered/issue-forms-body-parser@v1.5.0
+        uses: zentered/issue-forms-body-parser@v1.5.1
       - name: Organize Inputs
         id: organize-inputs
         run: |
