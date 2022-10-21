@@ -2,6 +2,7 @@ target/
 *.zip
 config.json
 test_config.json
+hashmap.json
 pack.png
 pack.mcmeta
 assets/
