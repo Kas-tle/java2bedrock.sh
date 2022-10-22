@@ -255,7 +255,7 @@ def gtest($input_g):
 ' parents.json config.json | sponge config.json
 
 # obtain hashes of all model file paths to ensure consistent model naming
-jq -r '.[] | [.geyserID,( .path + "/c" + (.nbt.CustomModelData | tostring) + "d" + (.nbt.Damage | tostring) + "u" + (.nbt.Unbreakable | tostring))] | @tsv | gsub("\\t";",")' config.json > paths.csv
+jq -r '.[] | [.geyserID,("c" + (.nbt.CustomModelData | tostring) + "_d" + (.nbt.Damage | tostring) + "_u" + (.nbt.Unbreakable | tostring))] | @tsv | gsub("\\t";",")' config.json > paths.csv
 
 function write_hash () { 
     local hash=$(echo -n "${1}" | md5sum | head -c 7) && echo "${2},${hash}" >> hashes.csv 
