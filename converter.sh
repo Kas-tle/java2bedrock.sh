@@ -9,7 +9,8 @@ C_BLUE='\e[36m'
 C_GRAY='\e[37m'
 C_CLOSE='\e[m'
 
-# status message function
+# status message function depending on message type
+# usage: status <completion|process|critical|error|info|plain> <message>
 status_message () {
   case $1 in
     "completion")
@@ -33,6 +34,8 @@ status_message () {
   esac
 }
 
+# dependency check function ensures important required programs are installed
+# usage: dependency_check <program_name> <program_site> <test_command> <grep_expression>
 dependency_check () {
   if command ${3} 2>/dev/null | grep -q "${4}"; then
       status_message completion "Dependency ${1} satisfied"
@@ -42,6 +45,8 @@ dependency_check () {
   fi
 }
 
+# user input function to prompt user for info when needed
+# usage: user_input <prompt_message> <default_value> <value_description>
 user_input () {
   if [[ -z "${!1}" ]]; then
     status_message plain "${2} ${C_YELLOW}[${3}]\n"
@@ -50,6 +55,7 @@ user_input () {
   fi
 }
 
+# wait for jobs function prevents the next job from starting until there is a free CPU thread
 wait_for_jobs () {
   while test $(jobs -p | wc -w) -ge "$((2*$(nproc)))"; do wait -n; done
 }
@@ -62,7 +68,7 @@ else
   status_message process "Input file ${1} detected"
 fi
 
-# get flags
+# get user defined start flags
 while getopts w:m:a:b:f:v: flag "${@:2}"
 do
     case "${flag}" in
@@ -75,6 +81,7 @@ do
     esac
 done
 
+# warn user about limitations of the script
 printf '\e[1;31m%-6s\e[m\n' "
 ███████████████████████████████████████████████████████████████████████████████
 ████████████████████████ # <!> # W A R N I N G # <!> # ████████████████████████
@@ -104,13 +111,14 @@ dependency_check "imagemagick" "https://imagemagick.org/script/download.php" "co
 dependency_check "spritesheet-js" "https://www.npmjs.com/package/spritesheet-js" "-v spritesheet-js" ""
 status_message completion "All dependencies have been satisfied\n"
 
-# initial configuration
+# prompt user for initial configuration
 status_message info "This script will now ask some configuration questions. Default values are yellow. Simply press enter to use the defaults.\n"
 user_input merge_input "Is there an existing bedrock pack in this directory with which you would like the output merged? (e.g. input.mcpack)" "null" "Input pack to merge"
 user_input attachable_material "What material should we use for the attachables?" "entity_alphatest_one_sided" "Attachable material"
 user_input block_material "What material should we use for the blocks?" "alpha_test" "Block material"
 user_input fallback_pack "From what URL should we download the fallback resource pack? (must be a direct link)\n Use 'none' if default resources are not needed." "null" "Fallback pack URL"
 
+# print initial configuration for user and set default values if none were specified
 status_message plain "
 Generating Bedrock 3D resource pack with settings:
 ${C_GRAY}Input pack to merge: ${C_BLUE}${merge_input:=null}
@@ -124,17 +132,21 @@ status_message process "Decompressing input pack"
 unzip -n -q "${1}"
 status_message completion "Input pack decompressed"
 
+# exit the script if no input pack exists by checking for a pack.mcmeta file
 if [ ! -f pack.mcmeta ]
 then
 	status_message error "Invalid resource pack! The pack.mcmeta file does not exist. Is the resource pack improperly compressed in an enclosing folder?"
   exit 1
 fi
 
-# setup our initial config
-status_message process "Iterating through all vanilla associated model JSONs to generate initial predicate config\nOn a large pack, this may take some time...\n"
-
-if test -d "./assets/minecraft/models/item"; then confarg1="./assets/minecraft/models/item/*.json"; fi
-if test -d "./assets/minecraft/models/block"; then confarg2="./assets/minecraft/models/block/*.json"; fi
+# ensure the directories that would contain predicate definitions exist
+if test -d "./assets/minecraft/models/item"; then item_folder="./assets/minecraft/models/item/*.json"; fi
+if test -d "./assets/minecraft/models/block"; then block_folder="./assets/minecraft/models/block/*.json"; fi
+if [[ -z ${item_folder} ]] && [[ -z ${block_folder} ]]
+then
+	status_message error "Invalid resource pack! No item or block folders exist. No predicate definitions be found."
+  exit 1
+fi
 
 # Download geyser mappings
 status_message process "Downloading the latest geyser item mappings"
@@ -146,7 +158,12 @@ COLUMNS=$COLUMNS-1 curl --no-styled-output -#L -o item_texture.json https://raw.
 echo
 printf "${C_CLOSE}"
 
-jq --slurpfile item_texture item_texture.json --slurpfile item_mappings item_mappings.json -n '[inputs | {(input_filename | sub("(.+)/(?<itemname>.*?).json"; .itemname)): .overrides?[]?}] |
+# setup our initial config by iterating over all json files in the block and item folders
+# technically we only need to iterate over actual item models that contain overrides, but the constraints of bash would likely make such an approach less efficent 
+status_message process "Iterating through all vanilla associated model JSONs to generate initial predicate config\nOn a large pack, this may take some time...\n"
+
+jq --slurpfile item_texture item_texture.json --slurpfile item_mappings item_mappings.json -n '
+[inputs | {(input_filename | sub("(.+)/(?<itemname>.*?).json"; .itemname)): .overrides?[]?}] |
 
 def maxdur($input):
 ($item_mappings[] |
@@ -187,7 +204,7 @@ if contains(":") then sub("\\:(.+)"; "") else "minecraft" end
 | to_entries | map( ((.value.geyserID = "gmdl_\(1+.key)" | .value.geometry = ("geometry.geyser_custom." + "gmdl_\(1+.key)")) | .value))
 | INDEX(.geyserID)
 
-' ${confarg1} ${confarg2} | sponge config.json
+' ${item_folder} ${block_folder} > config.json || { status_message error "Invalid JSON exists in block or item folder! See above log."; exit 1; }
 status_message completion "Initial predicate config generated"
 
 # get a bash array of all model json files in our resource pack
@@ -254,7 +271,7 @@ def gtest($input_g):
 
 ' parents.json config.json | sponge config.json
 
-# obtain hashes of all model file paths to ensure consistent model naming
+# obtain hashes of all model predicate info to ensure consistent model naming
 jq -r '.[] | [.geyserID, (.item + "_c" + (.nbt.CustomModelData | tostring) + "_d" + (.nbt.Damage | tostring) + "_u" + (.nbt.Unbreakable | tostring))] | @tsv | gsub("\\t";",")' config.json > paths.csv
 
 function write_hash () { 
@@ -501,7 +518,6 @@ do
         "elements": ($jelements[])
       } + (if $jdisplay then ({"display": ($jdisplay[])}) else {} end)
       ' | sponge ${file}
-      #jq --arg gid "${gid}" '.[$gid].generated |= "false"' config.json | sponge config.json
       echo >> count.csv
       local tot_pos=$(wc -l < count.csv)
       status_message completion "Located all parental info for Child ${gid}\n$(ProgressBar ${tot_pos} ${_end})"
@@ -514,12 +530,10 @@ do
         "textures": ([$jtextures[]][0])
       } + (if $jdisplay then ({"display": ($jdisplay[])}) else {} end)
       ' | sponge ${file}
-      #jq --arg gid "${gid}" '.[$gid].generated |= "true"' config.json | sponge config.json
       # copy texture directly to the rp
       mkdir -p "./target/rp/textures/geyser/geyser_custom/${namespace}/${model_path}"
       cp "${texture_0}" "./target/rp/textures/geyser/geyser_custom/${namespace}/${model_path}/${model_name}.png"
       # add texture to item atlas
-      #jq --arg path_hash "${path_hash}" --arg namespace "${namespace}" --arg model_path "${model_path}" --arg model_name "${model_name}" '.texture_data += {($path_hash): {"textures": ("textures/geyser/geyser_custom/" + $namespace + "/" + $model_path + "/" + $model_name)}}' ./target/rp/textures/item_texture.json | sponge ./target/rp/textures/item_texture.json
       echo "${path_hash},textures/geyser/geyser_custom/${namespace}/${model_path}/${model_name}" >> icons.csv
       echo "${gid}" >> generated.csv
       echo >> count.csv
@@ -533,7 +547,6 @@ do
       local tot_pos=$(wc -l < count.csv)
       status_message critical "Deleting ${gid} from config as no suitable parent information was found\n$(ProgressBar ${tot_pos} ${_end})"
       echo
-      #jq --arg gid "${gid}" 'del(.[$gid])' config.json | sponge config.json
     fi
     rm -f ${gid}.elements.temp ${gid}.textures.temp ${gid}.display.temp
   }
@@ -614,7 +627,6 @@ do
     status_message process "Generating sprite sheet ${1} of ${total_union_atlas}"
     spritesheet-js -f json --name spritesheet/${1} --fullpath ${texture_list[@]} > /dev/null 2>&1
     echo ${1} >> atlases.csv
-    #jq --arg atlas_index "${i}" '.texture_data += {("gmdl_atlas_" + $atlas_index): {"textures": ("textures/geyser/geyser_custom/" + $atlas_index)}}' ./target/rp/textures/terrain_texture.json | sponge ./target/rp/textures/terrain_texture.json
   }
   wait_for_jobs
   generate_atlas "${i}" &
@@ -992,15 +1004,6 @@ cp ./target/rp/texts/en_US.lang ./target/rp/texts/en_GB.lang
 jq -n '["en_US","en_GB"]' | sponge ./target/rp/texts/languages.json
 status_message completion "en_US and en_GB lang files written\n"
 
-# apply image compression if we can
-#if command -v pngquant >/dev/null 2>&1 ; then
-#    status_message completion "Optional dependency pngquant detected"
-#    status_message process "Attempting image compression"
-#    pngquant -f --skip-if-larger --ext .png --strip ./target/rp/textures/geyser/geyser_custom/*.png
-#    status_message completion "Image compression complete"
-#    echo
-#fi
-
 # Ensure images are in the correct color space
 status_message process "Setting all images to png8"
 find ./target/rp/textures/geyser/geyser_custom -name '*.png' -exec mogrify -define png:format=png8  {} +
@@ -1050,8 +1053,6 @@ if test -f ${merge_input}; then
   status_message completion "Input bedrock pack merged with generated assets\n"
 fi
 
-#status_message critical "Deleting unused entries from config"
-# jq 'map_values(del(.path, .element_parent, .parent, .geyserID))' config.json | sponge config.json
 status_message process "Creating Geyser mappings in target directory"
 echo
 jq '
