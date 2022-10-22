@@ -1015,7 +1015,7 @@ if [ -f sprites.json ]; then
   status_message process "Adding provided sprite paths from sprites.json"
   jq -s '
   .[1] as $ind 
-  | (.[0] 
+  | ((.[0] | INDEX(.path_hash)) 
   | map_values(
     .nbt.CustomModelData as $custom_model_data
     | .nbt.Damage as $damage
