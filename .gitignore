@@ -15,3 +15,6 @@ item_texture.json
 spritesheet/
 sprites.json
 sprite_hashmap.json
+nongenerated.json
+item_textures.json
+atlases.json

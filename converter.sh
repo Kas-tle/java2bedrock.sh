@@ -457,73 +457,123 @@ printf "\r\e[37m█\e[m \e[37m${_fill// /█}\e[m\e[37m${_empty// /•}\e[m \e[3
 # first, deal with parented models
 while IFS=, read -r file gid parental namespace model_path model_name path_hash
 do
-  cur_pos=$((cur_pos+1))
-  elements="$(jq -rc '.elements' ${file} | tee elements.temp)"
-  element_parent=${file}
-  textures="$(jq -rc '.textures' ${file} | tee textures.temp)"
-  display="$(jq -rc '.display' ${file} | tee display.temp)"
-  status_message process "Locating parental info for child model with GeyserID ${gid}"
+  resolve_parental () {
+    local file=${1}
+    local gid=${2}
+    local parental=${3}
+    local namespace=${4}
+    local model_path=${5}
+    local model_name=${6}
+    local path_hash=${7}
 
-  # itterate through parented models until they all have geometry, display, and textures
-  until [[ ${elements} != null && ${textures} != null && ${display} != null ]] || [[ ${parental} = "./assets/minecraft/models/builtin/generated.json" ]] || [[ ${parental} = null ]]
-  do
-    if [[ ${elements} = null ]]
-    then
-      elements="$(jq -rc '.elements' ${parental} 2> /dev/null | tee elements.temp || (echo && echo null))"
-      element_parent=${parental}
-    fi
-    if [[ ${textures} = null ]]
-    then
-      textures="$(jq -rc '.textures' ${parental} 2> /dev/null | tee textures.temp || (echo && echo null))"
-    fi
-    if [[ ${display} = null ]]
-    then
-      display="$(jq -rc '.display' ${parental} 2> /dev/null | tee display.temp || (echo && echo null))"
-    fi
-    parental="$(jq -rc 'def namespace: if contains(":") then sub("\\:(.+)"; "") else "minecraft" end; ("./assets/" + (.parent? | namespace) + "/models/" + ((.parent? // empty) | sub("(.*?)\\:"; "")) + ".json") // "null"' ${parental} 2> /dev/null || (echo && echo null))"
-    texture_0="$(jq -rc 'def namespace: if contains(":") then sub("\\:(.+)"; "") else "minecraft" end; ("./assets/" + ([.[]][0]? | namespace) + "/textures/" + (([.[]][0]? // empty) | sub("(.*?)\\:"; "")) + ".png") // "null"' textures.temp)"
-  done
+    local elements="$(jq -rc '.elements' ${file} | tee ${gid}.elements.temp)"
+    local element_parent=${file}
+    local textures="$(jq -rc '.textures' ${file} | tee ${gid}.textures.temp)"
+    local display="$(jq -rc '.display' ${file} | tee ${gid}.display.temp)"
+    status_message process "Locating parental info for child model with GeyserID ${gid}"
 
-  # if we can, generate a model now
-  if [[ ${elements} != null && ${textures} != null ]]
-  then
-    jq -n --slurpfile jelements elements.temp --slurpfile jtextures textures.temp --slurpfile jdisplay display.temp '
-    {
-      "textures": ($jtextures[]),
-      "elements": ($jelements[])
-    } + (if $jdisplay then ({"display": ($jdisplay[])}) else {} end)
-    ' | sponge ${file}
-    jq --arg gid "${gid}" '.[$gid].generated |= "false"' config.json | sponge config.json
-    status_message completion "Located all parental info for Child ${gid}"
-    ProgressBar ${cur_pos} ${_end}
-    echo
-  # check if this is a 2d item dervived from ./assets/minecraft/models/builtin/generated
-  elif [[ ${textures} != null && ${parental} = "./assets/minecraft/models/builtin/generated.json" && -f "${texture_0}" ]]
-  then
-    jq -n --slurpfile jelements elements.temp --slurpfile jtextures textures.temp --slurpfile jdisplay display.temp '
-    {
-      "textures": ([$jtextures[]][0])
-    } + (if $jdisplay then ({"display": ($jdisplay[])}) else {} end)
-    ' | sponge ${file}
-    jq --arg gid "${gid}" '.[$gid].generated |= "true"' config.json | sponge config.json
-    # copy texture directly to the rp
-    mkdir -p "./target/rp/textures/geyser/geyser_custom/${namespace}/${model_path}"
-    cp "${texture_0}" "./target/rp/textures/geyser/geyser_custom/${namespace}/${model_path}/${model_name}.png"
-    # add texture to item atlas
-    jq --arg path_hash "${path_hash}" --arg namespace "${namespace}" --arg model_path "${model_path}" --arg model_name "${model_name}" '.texture_data += {($path_hash): {"textures": ("textures/geyser/geyser_custom/" + $namespace + "/" + $model_path + "/" + $model_name)}}' ./target/rp/textures/item_texture.json | sponge ./target/rp/textures/item_texture.json
-    status_message completion "Located all parental info for 2D Child ${gid}"
-    ProgressBar ${cur_pos} ${_end}
-    echo
-  # otherwise, remove it from our config
-  else
-    status_message plain "Suitable parent information was not availbile for ${gid}..."
-    status_message critical "Deleting ${gid} from config"
-    ProgressBar ${cur_pos} ${_end}
-    echo
-    jq --arg gid "${gid}" 'del(.[$gid])' config.json | sponge config.json
-  fi
+    # itterate through parented models until they all have geometry, display, and textures
+    until [[ ${elements} != null && ${textures} != null && ${display} != null ]] || [[ ${parental} = "./assets/minecraft/models/builtin/generated.json" ]] || [[ ${parental} = null ]]
+    do
+      if [[ ${elements} = null ]]
+      then
+        local elements="$(jq -rc '.elements' ${parental} 2> /dev/null | tee ${gid}.elements.temp || (echo && echo null))"
+        local element_parent=${parental}
+      fi
+      if [[ ${textures} = null ]]
+      then
+        local textures="$(jq -rc '.textures' ${parental} 2> /dev/null | tee ${gid}.textures.temp || (echo && echo null))"
+      fi
+      if [[ ${display} = null ]]
+      then
+        local display="$(jq -rc '.display' ${parental} 2> /dev/null | tee ${gid}.display.temp || (echo && echo null))"
+      fi
+      local parental="$(jq -rc 'def namespace: if contains(":") then sub("\\:(.+)"; "") else "minecraft" end; ("./assets/" + (.parent? | namespace) + "/models/" + ((.parent? // empty) | sub("(.*?)\\:"; "")) + ".json") // "null"' ${parental} 2> /dev/null || (echo && echo null))"
+      local texture_0="$(jq -rc 'def namespace: if contains(":") then sub("\\:(.+)"; "") else "minecraft" end; ("./assets/" + ([.[]][0]? | namespace) + "/textures/" + (([.[]][0]? // empty) | sub("(.*?)\\:"; "")) + ".png") // "null"' ${gid}.textures.temp)"
+    done
+
+    # if we can, generate a model now
+    if [[ ${elements} != null && ${textures} != null ]]
+    then
+      jq -n --slurpfile jelements ${gid}.elements.temp --slurpfile jtextures ${gid}.textures.temp --slurpfile jdisplay ${gid}.display.temp '
+      {
+        "textures": ($jtextures[]),
+        "elements": ($jelements[])
+      } + (if $jdisplay then ({"display": ($jdisplay[])}) else {} end)
+      ' | sponge ${file}
+      #jq --arg gid "${gid}" '.[$gid].generated |= "false"' config.json | sponge config.json
+      echo >> count.csv
+      local tot_pos=$(wc -l < count.csv)
+      status_message completion "Located all parental info for Child ${gid}\n$(ProgressBar ${tot_pos} ${_end})"
+      echo
+    # check if this is a 2d item dervived from ./assets/minecraft/models/builtin/generated
+    elif [[ ${textures} != null && ${parental} = "./assets/minecraft/models/builtin/generated.json" && -f "${texture_0}" ]]
+    then
+      jq -n --slurpfile jelements ${gid}.elements.temp --slurpfile jtextures ${gid}.textures.temp --slurpfile jdisplay ${gid}.display.temp '
+      {
+        "textures": ([$jtextures[]][0])
+      } + (if $jdisplay then ({"display": ($jdisplay[])}) else {} end)
+      ' | sponge ${file}
+      #jq --arg gid "${gid}" '.[$gid].generated |= "true"' config.json | sponge config.json
+      # copy texture directly to the rp
+      mkdir -p "./target/rp/textures/geyser/geyser_custom/${namespace}/${model_path}"
+      cp "${texture_0}" "./target/rp/textures/geyser/geyser_custom/${namespace}/${model_path}/${model_name}.png"
+      # add texture to item atlas
+      #jq --arg path_hash "${path_hash}" --arg namespace "${namespace}" --arg model_path "${model_path}" --arg model_name "${model_name}" '.texture_data += {($path_hash): {"textures": ("textures/geyser/geyser_custom/" + $namespace + "/" + $model_path + "/" + $model_name)}}' ./target/rp/textures/item_texture.json | sponge ./target/rp/textures/item_texture.json
+      echo "${path_hash},textures/geyser/geyser_custom/${namespace}/${model_path}/${model_name}" >> icons.csv
+      echo "${gid}" >> generated.csv
+      echo >> count.csv
+      local tot_pos=$(wc -l < count.csv)
+      status_message completion "Located all parental info for 2D Child ${gid}\n$(ProgressBar ${tot_pos} ${_end})"
+      echo
+    # otherwise, remove it from our config
+    else
+      echo "${gid}" >> deleted.csv
+      echo >> count.csv
+      local tot_pos=$(wc -l < count.csv)
+      status_message critical "Deleting ${gid} from config as no suitable parent information was found\n$(ProgressBar ${tot_pos} ${_end})"
+      echo
+      #jq --arg gid "${gid}" 'del(.[$gid])' config.json | sponge config.json
+    fi
+    rm -f ${gid}.elements.temp ${gid}.textures.temp ${gid}.display.temp
+  }
+  wait_for_jobs
+  resolve_parental "${file}" "${gid}" "${parental}" "${namespace}" "${model_path}" "${model_name}" "${path_hash}" &
 
 done < pa.csv
+wait # wait for all the jobs to finish
+
+# update generated models in config
+if [[ -f generated.csv ]]
+then
+  jq -cR 'split(",")' generated.csv | jq -s 'map({(.[0]): "true"}) | add' > generated.json
+  jq -s '
+  .[0] as $generated_models
+  | .[1]
+  | map_values(
+    .geyserID as $gid
+    | .generated = ($generated_models[($gid)] // "false")
+  )
+  ' generated.json config.json | sponge config.json
+fi
+
+# add icon textures to item atlas
+if [[ -f icons.csv ]]
+then
+  jq -cR 'split(",")' icons.csv | jq -s 'map({(.[0]): {"textures": .[1]}}) | add' > icons.json
+  jq -s '
+  .[0] as $icons
+  | .[1] 
+  | .texture_data += $icons
+  ' icons.json ./target/rp/textures/item_texture.json | sponge ./target/rp/textures/item_texture.json
+fi
+
+# delete unsuitable models
+if [[ -f deleted.csv ]]
+then
+  jq -cR 'split(",")' deleted.csv  | jq -s '.' > deleted.json
+  jq -s '.[0] as $deleted | .[1] | delpaths($deleted)' deleted.json config.json | sponge config.json
+fi
 
 status_message process "Compiling final model list"
 # get our final 3d model list from the config
@@ -558,12 +608,27 @@ mkdir spritesheet
 status_message process "Generating $((1+${total_union_atlas})) sprite sheets..."
 for i in $(seq 0 ${total_union_atlas})
 do
-  # find the union of all texture files listed in this atlas and all texture files in our resource pack
-  texture_list=( $(jq -s --arg index "${i}" -r '(.[1][($index | tonumber)] - .[0] | length > 0) as $fallback_needed | ((.[1][($index | tonumber)] - (.[1][($index | tonumber)] - .[0])) + (if $fallback_needed then ["./assets/minecraft/textures/0.png"] else [] end)) | .[]' all_textures.temp union_atlas.temp) )
-  status_message process "Generating sprite sheet ${i} of ${total_union_atlas}"
-  spritesheet-js -f json --name spritesheet/${i} --fullpath ${texture_list[@]} > /dev/null 2>&1
-  jq --arg atlas_index "${i}" '.texture_data += {("gmdl_atlas_" + $atlas_index): {"textures": ("textures/geyser/geyser_custom/" + $atlas_index)}}' ./target/rp/textures/terrain_texture.json | sponge ./target/rp/textures/terrain_texture.json
+  generate_atlas () {
+    # find the union of all texture files listed in this atlas and all texture files in our resource pack
+    local texture_list=( $(jq -s --arg index "${1}" -r '(.[1][($index | tonumber)] - .[0] | length > 0) as $fallback_needed | ((.[1][($index | tonumber)] - (.[1][($index | tonumber)] - .[0])) + (if $fallback_needed then ["./assets/minecraft/textures/0.png"] else [] end)) | .[]' all_textures.temp union_atlas.temp) )
+    status_message process "Generating sprite sheet ${1} of ${total_union_atlas}"
+    spritesheet-js -f json --name spritesheet/${1} --fullpath ${texture_list[@]} > /dev/null 2>&1
+    echo ${1} >> atlases.csv
+    #jq --arg atlas_index "${i}" '.texture_data += {("gmdl_atlas_" + $atlas_index): {"textures": ("textures/geyser/geyser_custom/" + $atlas_index)}}' ./target/rp/textures/terrain_texture.json | sponge ./target/rp/textures/terrain_texture.json
+  }
+  wait_for_jobs
+  generate_atlas "${i}" &
 done
+wait # wait for all the jobs to finish
+
+# generate terrain texture atlas
+jq -cR 'split(",")' atlases.csv | jq -s 'map({("gmdl_atlas_" + .[0]): {"textures": ("textures/geyser/geyser_custom/" + .[0])}}) | add' > atlases.json
+jq -s '
+.[0] as $atlases
+| .[1] 
+| .texture_data += $atlases
+' atlases.json ./target/rp/textures/terrain_texture.json | sponge ./target/rp/textures/terrain_texture.json
+
 status_message completion "All sprite sheets generated"
 mv spritesheet/*.png ./target/rp/textures/geyser/geyser_custom
 
@@ -1058,7 +1123,7 @@ fi
 
 # cleanup
 status_message critical "Deleting scratch files"
-rm -rf spritesheet && rm -rf assets && rm -f pack.mcmeta && rm -f pack.png && rm -f parents.json && rm -f all.csv && rm -f pa.csv && rm -f *.temp && rm -f item_mappings.json && rm -f item_texture.json && rm paths.csv && rm hashes.csv && rm hashmap.json && rm count.csv
+rm -rf spritesheet && rm -rf assets && rm -f pack.mcmeta && rm -f pack.png && rm -f parents.json && rm -f all.csv && rm -f pa.csv && rm -f *.temp && rm -f item_mappings.json && rm -f item_texture.json && rm paths.csv && rm hashes.csv && rm hashmap.json && rm count.csv && rm -f atlases.csv && rm -f atlases.json && rm -f generated.csv && rm -f generated.json && rm -f icons.csv && rm -f icons.json && rm -f deleted.csv && rm -f deleted.json
 
 status_message process "Compressing output packs"
 mkdir ./target/packaged
