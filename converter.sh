@@ -140,9 +140,9 @@ if test -d "./assets/minecraft/models/block"; then confarg2="./assets/minecraft/
 status_message process "Downloading the latest geyser item mappings"
 printf "\e[3m\e[37m"
 echo
-wget -nv --show-progress -O item_mappings.json https://raw.githubusercontent.com/GeyserMC/mappings/master/items.json
+COLUMNS=$COLUMNS-1 curl --no-styled-output -#L -o item_mappings.json https://raw.githubusercontent.com/GeyserMC/mappings/master/items.json
 echo
-wget -nv --show-progress -O item_texture.json https://raw.githubusercontent.com/Kas-tle/java2bedrockMappings/main/item_texture.json
+COLUMNS=$COLUMNS-1 curl --no-styled-output -#L -o item_texture.json https://raw.githubusercontent.com/Kas-tle/java2bedrockMappings/main/item_texture.json
 echo
 printf "${C_CLOSE}"
 
@@ -255,14 +255,14 @@ def gtest($input_g):
 ' parents.json config.json | sponge config.json
 
 # obtain hashes of all model file paths to ensure consistent model naming
-jq -r '.[] | [.geyserID,("c" + (.nbt.CustomModelData | tostring) + "_d" + (.nbt.Damage | tostring) + "_u" + (.nbt.Unbreakable | tostring))] | @tsv | gsub("\\t";",")' config.json > paths.csv
+jq -r '.[] | [.geyserID, (.item + "_c" + (.nbt.CustomModelData | tostring) + "_d" + (.nbt.Damage | tostring) + "_u" + (.nbt.Unbreakable | tostring))] | @tsv | gsub("\\t";",")' config.json > paths.csv
 
 function write_hash () { 
-    local hash=$(echo -n "${1}" | md5sum | head -c 7) && echo "${2},${hash}" >> hashes.csv 
+    local hash=$(echo -n "${1}" | md5sum | head -c 7) && echo "${2},${hash}" >> "${3}"
 }
 
-while IFS=, read -r gid file
-    do write_hash "${file}" "${gid}" & 
+while IFS=, read -r gid predicate
+    do write_hash "${predicate}" "${gid}" "hashes.csv" & 
 done < paths.csv > /dev/null
 
 jq -cR 'split(",")' hashes.csv | jq -s 'map({(.[0]): .[1]}) | add' > hashmap.json
@@ -390,7 +390,9 @@ if [[ ${fallback_pack} != none ]] && [[ ! -f default_assets.zip ]]
 then
   status_message process "Now downloading the fallback resource pack:"
   printf "\e[3m\e[37m"
-  wget -nv --show-progress -O default_assets.zip https://github.com/InventivetalentDev/minecraft-assets/zipball/refs/tags/${default_asset_version:=1.19.2}
+  echo
+  COLUMNS=$COLUMNS-1 curl --no-styled-output -#L -o default_assets.zip https://github.com/InventivetalentDev/minecraft-assets/zipball/refs/tags/${default_asset_version:=1.19.2}
+  echo
   printf "${C_CLOSE}"
   status_message completion "Fallback resources downloaded"
 fi
@@ -398,7 +400,9 @@ fi
 if [[ ${fallback_pack} != null &&  ${fallback_pack} != none ]]
 then
   printf "\e[3m\e[37m"
-  wget -nv --show-progress -O provided_assets.zip "${fallback_pack}"
+  echo
+  COLUMNS=$COLUMNS-1 curl --no-styled-output -#L -o provided_assets.zip "${fallback_pack}"
+  echo
   printf "${C_CLOSE}"
   status_message completion "Provided resources downloaded"
   mkdir ./providedassetholding
@@ -1013,52 +1017,48 @@ jq '
 # Add sprites if sprites.json exists in the root pack
 if [ -f sprites.json ]; then
   status_message process "Adding provided sprite paths from sprites.json"
+  jq -r '
+  to_entries 
+  | map(.key as $item | .value | map(. += {"item": $item})) 
+  | add[] 
+  | [((.item | split(":")[-1]) + "_c" + (.custom_model_data | tostring) + "_d" + (.damage_predicate | tostring) + "_u" + (.unbreakable | tostring)), .sprite] 
+  | @tsv 
+  | gsub("\\t";",")
+  ' sprites.json > sprites.csv
+
+  while IFS=, read -r predicate icon
+    do write_hash "${predicate}" "${icon}"  "sprite_hashes.csv" &
+  done < sprites.csv > /dev/null
+
+  jq -cR 'split(",")' sprite_hashes.csv | jq -s 'map({("gmdl_" + .[1]): {"textures": .[0]}}) | add' > sprite_hashmap.json
+
   jq -s '
-  .[1] as $ind 
-  | ((.[0] | INDEX(.path_hash)) 
-  | map_values(
-    .nbt.CustomModelData as $custom_model_data
-    | .nbt.Damage as $damage
-    | .nbt.Unbreakable as $unbreakable
-    | {
-        "textures": ($ind[(.item)][]?) 
-        | select(.custommodeldata == ($custom_model_data))
-        | select(.damage == ($damage))
-        | select(.unbreakable == ($unbreakable))
-        | .sprite
-      }
-    )) as $icon_sprites
-  | .[2] 
+  .[0] as $icon_sprites
+  | .[1] 
   | .texture_data += $icon_sprites
-  ' config.json sprites.json ./target/rp/textures/item_texture.json | sponge ./target/rp/textures/item_texture.json
+  ' sprite_hashmap.json ./target/rp/textures/item_texture.json | sponge ./target/rp/textures/item_texture.json
   
   jq -s '
   {
   "format_version": "1",
   "items": 
-    (.[1] as $ind | .[0].items | to_entries | map(
+    ((.[0] | keys | map({(.): (.)}) | add) as $sprites | .[1].items | to_entries | map(
     (.key | split(":")[1]) as $item
     | .value | {("minecraft:" + $item): (map(
       .name as $name
       | .icon as $icon
-      | .custom_model_data as $custom_model_data
-      | .damage_predicate as $damage_predicate
-      | .unbreakable as $unbreakable
-      | (if (
-          (([((($ind[($item)][])? | .custommodeldata) // null)] | index($custom_model_data)) == null) or
-          (([((($ind[($item)][])? | .damage) // null)] | index($damage_predicate)) == null) or
-          (([((($ind[($item)][])? | .unbreakable) // null)] | index($unbreakable)) == null)
-        ) then $icon else $name end) as $new_icon
-      | .icon = $new_icon
+      | .icon = ($sprites[($name)] // $icon)
     ))}
     ) | add)
   }
-  ' ./target/geyser_mappings.json sprites.json | sponge ./target/geyser_mappings.json
+  ' sprite_hashmap.json ./target/geyser_mappings.json | sponge ./target/geyser_mappings.json
+  
+  rm -f sprites.json && rm -f sprites.csv && rm -f sprite_hashes.csv && rm -f sprite_hashmap.json
 fi
 
 # cleanup
 status_message critical "Deleting scratch files"
-rm -rf spritesheet && rm -rf assets && rm -f pack.mcmeta && rm -f sprites.json && rm -f pack.png && rm -f parents.json && rm -f all.csv && rm -f pa.csv && rm -f *.temp && rm -f item_mappings.json && rm -f item_texture.json && rm paths.csv && rm hashes.csv && rm hashmap.json && rm count.csv
+rm -rf spritesheet && rm -rf assets && rm -f pack.mcmeta && rm -f pack.png && rm -f parents.json && rm -f all.csv && rm -f pa.csv && rm -f *.temp && rm -f item_mappings.json && rm -f item_texture.json && rm paths.csv && rm hashes.csv && rm hashmap.json && rm count.csv
 
 status_message process "Compressing output packs"
 mkdir ./target/packaged

@@ -83,10 +83,10 @@ jobs:
           cp converter.sh staging/
           cd staging
           chmod +x converter.sh
-          wget "${PACK_URL}" -O input_pack.zip
+          COLUMNS=$COLUMNS-1 curl --no-styled-output -#L -o input_pack.zip "${PACK_URL}"
           MERGE_PACK_FILE="${MERGE_PACK_URL}"
           if [ "${MERGE_PACK_URL}" != "null" ]; then
-            wget "${MERGE_PACK_URL}" -O merge_pack.zip
+            COLUMNS=$COLUMNS-1 curl --no-styled-output -#L -o merge_pack.zip "${MERGE_PACK_URL}"
             MERGE_PACK_FILE="merge_pack.zip"
           fi
           ./converter.sh input_pack.zip -w "false" -m ${MERGE_PACK_FILE} -a ${ATTACHABLE_MATERIAL} -b ${BLOCK_MATERIAL} -f ${DEFAULT_PACK_URL} -v ${DEFAULT_ASSETS_VERSION}

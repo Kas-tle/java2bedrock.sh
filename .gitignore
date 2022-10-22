@@ -13,3 +13,5 @@ spritesheet.json
 item_mappings.json
 item_texture.json 
 spritesheet/
+sprites.json
+sprite_hashmap.json
