@@ -22,7 +22,7 @@ For example:
 ```
 
 If you prepare 2D sprites for your 3D models, you can provide the converter with mappings for these sprites to be incorporated into item_texture.json and the exported Geyser mappings. To do so, simply include a file called `sprites.json` in the root of your Java resource pack. The format of this file is as follows:
-```
+```json
 {
     "leather": [
         {
