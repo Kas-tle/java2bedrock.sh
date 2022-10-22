@@ -18,3 +18,5 @@ sprite_hashmap.json
 nongenerated.json
 item_textures.json
 atlases.json
+icons.json
+generated.json
