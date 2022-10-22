@@ -197,7 +197,7 @@ if contains(":") then sub("\\:(.+)"; "") else "minecraft" end
     "namespace": (.value.model | namespace),
     "model_path": ((.value.model | sub("(.*?)\\:"; "")) | split("/")[:-1] | map(. + "/") | add[:-1]),
     "model_name": ((.value.model | sub("(.*?)\\:"; "")) | split("/")[-1]),
-    "generated": "false"
+    "generated": false
 
 }) | .[]]
 | walk(if type == "object" then with_entries(select(.value != null)) else . end)
@@ -559,13 +559,13 @@ wait # wait for all the jobs to finish
 # update generated models in config
 if [[ -f generated.csv ]]
 then
-  jq -cR 'split(",")' generated.csv | jq -s 'map({(.[0]): "true"}) | add' > generated.json
+  jq -cR 'split(",")' generated.csv | jq -s 'map({(.[0]): true}) | add' > generated.json
   jq -s '
   .[0] as $generated_models
   | .[1]
   | map_values(
     .geyserID as $gid
-    | .generated = ($generated_models[($gid)] // "false")
+    | .generated = ($generated_models[($gid)] // false)
   )
   ' generated.json config.json | sponge config.json
 fi
@@ -590,7 +590,7 @@ fi
 
 status_message process "Compiling final model list"
 # get our final 3d model list from the config
-model_list=( $(jq -r '.[] | select(.generated == "false") | .path' config.json) )
+model_list=( $(jq -r '.[] | select(.generated == false) | .path' config.json) )
 
 # get our final texture list to be atlased
 # get a bash array of all texture files in our resource pack
@@ -671,6 +671,7 @@ do
     jq --slurpfile atlas spritesheet/${atlas_index}.json --arg generated "${generated}" --arg binding "c.item_slot == 'head' ? 'head' : q.item_slot_to_bone_name(c.item_slot)" --arg path_hash "${path_hash}" -c '
     .textures as $texture_list |
     def namespace: if contains(":") then sub("\\:(.+)"; "") else "minecraft" end;
+    def tobool: if .=="true" then true elif .=="false" then false else null end;
     def totexture($input): ($texture_list[($input[1:])]? // ([$texture_list[]][0]));
     def topath($input): ("./assets/" + ($input | namespace) + "/textures/" + ($input | sub("(.*?)\\:"; "")) + ".png");
     def texturedata($input): $atlas[] | .frames | (.[topath(totexture($input))] // ."./assets/minecraft/textures/0.png");
@@ -745,7 +746,7 @@ do
             "parent": "geyser_custom_x",
             "pivot": [0, 8, 0]
           }, 
-            if $generated == "true" then ({
+            if ($generated | tobool) == true then ({
             "name": "geyser_custom_z",
             "parent": "geyser_custom_y",
             "pivot": [0, 8, 0],
@@ -932,7 +933,7 @@ do
       # generate our rp attachable definition
       mkdir -p ./target/rp/attachables/geyser_custom/${namespace}/${model_path}
       jq -c -n --arg generated "${generated}" --arg atlas_index "${atlas_index}" --arg attachable_material "${attachable_material}" --arg v_main "v.main_hand = c.item_slot == 'main_hand';" --arg v_off "v.off_hand = c.item_slot == 'off_hand';" --arg v_head "v.head = c.item_slot == 'head';" --arg path_hash "${path_hash}" --arg namespace "${namespace}" --arg model_path "${model_path}" --arg model_name "${model_name}" '
-
+      def tobool: if .=="true" then true elif .=="false" then false else null end;
       {
         "format_version": "1.10.0",
         "minecraft:attachable": {
@@ -943,7 +944,7 @@ do
               "enchanted": $attachable_material
             },
             "textures": {
-              "default": (if $generated == "true" then ("textures/geyser/geyser_custom/" + $namespace + "/" + $model_path + "/" + $model_name) else ("textures/geyser/geyser_custom/" + $atlas_index) end),
+              "default": (if ($generated | tobool) == true then ("textures/geyser/geyser_custom/" + $namespace + "/" + $model_path + "/" + $model_name) else ("textures/geyser/geyser_custom/" + $atlas_index) end),
               "enchanted": "textures/misc/enchanted_item_glint"
             },
             "geometry": {
@@ -1062,9 +1063,9 @@ jq '
       {
         "name": .path_hash,
         "allow_offhand": true,
-        "icon": (if .generated == "true" then .path_hash else .bedrock_icon.icon end)
+        "icon": (if .generated == true then .path_hash else .bedrock_icon.icon end)
       }
-      + (if (.generated == "false") then {"frame": (.bedrock_icon.frame)} else {} end)
+      + (if (.generated == false) then {"frame": (.bedrock_icon.frame)} else {} end)
       + (if .nbt.CustomModelData then {"custom_model_data": (.nbt.CustomModelData)} else {} end)
       + (if .nbt.Damage then {"damage_predicate": (.nbt.Damage)} else {} end)
       + (if .nbt.Unbreakable then {"unbreakable": (.nbt.Unbreakable)} else {} end)
