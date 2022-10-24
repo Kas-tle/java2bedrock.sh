@@ -85,6 +85,7 @@ done
 
 if [[ ${disable_ulimit} == "true" ]]
 then
+  getconf ARG_MAX
   ulimit -s unlimited
   status_message info "Changed ulimit settings for script:"
   ulimit -a
