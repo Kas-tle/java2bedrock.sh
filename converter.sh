@@ -195,7 +195,7 @@ if contains(":") then sub("\\:(.+)"; "") else "minecraft" end
     }),
     "path": ("./assets/" + (.value.model | namespace) + "/models/" + (.value.model | sub("(.*?)\\:"; "")) + ".json"),
     "namespace": (.value.model | namespace),
-    "model_path": ((.value.model | sub("(.*?)\\:"; "")) | split("/")[:-1] | map(. + "/") | add[:-1]),
+    "model_path": ((.value.model | sub("(.*?)\\:"; "")) | split("/")[:-1] | map(. + "/") | add[:-1] // ""),
     "model_name": ((.value.model | sub("(.*?)\\:"; "")) | split("/")[-1]),
     "generated": false
 
