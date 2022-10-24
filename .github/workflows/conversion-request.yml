@@ -47,7 +47,7 @@ jobs:
     needs: get-pack-info
     permissions: 
       contents: read
-    timeout-minutes: 30
+    timeout-minutes: 90
     outputs:
       run_id: ${{ steps.get-pack-info.outputs.pack_url }}
     steps:
