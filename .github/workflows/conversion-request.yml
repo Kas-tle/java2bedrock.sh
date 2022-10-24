@@ -102,6 +102,7 @@ jobs:
             staging/target/packaged/geyser_resources.mcpack
             staging/target/packaged/geyser_addon.mcaddon
             staging/target/geyser_mappings.json
+            staging/target/scratch_files.zip
             staging/config.json
   post-result:
     runs-on: ubuntu-latest
