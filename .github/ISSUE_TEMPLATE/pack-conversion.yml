@@ -83,6 +83,15 @@ body:
         - entity_alphatest_one_sided
     validations:
       required: false
+  - type: dropdown
+    id: archive-scratch
+    attributes:
+      label: Archive Scratch Files
+      description: |
+        Should scratch files be archived? This will create a zip file containing the scratch files used by the script during the conversion process. If not selected, this will default to `false`.
+      options:
+        - true
+        - false
   - type: checkboxes
     id: terms
     attributes:

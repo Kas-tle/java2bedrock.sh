@@ -18,6 +18,7 @@ jobs:
       default_assets_version: ${{ steps.organize-inputs.outputs.DEFAULT_ASSETS_VERSION }}
       block_material: ${{ steps.organize-inputs.outputs.BLOCK_MATERIAL }}
       attachable_material: ${{ steps.organize-inputs.outputs.ATTACHABLE_MATERIAL }}
+      archive_scratch: ${{ steps.organize-inputs.outputs.ARCHIVE_SCRATCH }}
     steps:
       - name: Issue Forms Body Parser
         id: parse-issue
@@ -34,7 +35,8 @@ jobs:
             "merge_pack_url": test_input(.["bedrock-merge-pack-direct-download-url"].text; " null ")[1:-1],
             "default_assets_version": test_input(.["default-assets-version"].text; "1.19.2"),
             "block_material": test_input(.["block-material"].text; "alpha_test"),
-            "attachable_material": test_input(.["attachable-material"].text; "entity_alphatest_one_sided")
+            "attachable_material": test_input(.["attachable-material"].text; "entity_alphatest_one_sided"),
+            "archive_scratch": test_input(.["archive-scratch"].text; "false")
           }' > inputs.json
           echo "PACK_URL=$(jq -r '.pack_url' inputs.json)" >> $GITHUB_OUTPUT
           echo "DEFAULT_PACK_URL=$(jq -r '.default_pack_url' inputs.json)" >> $GITHUB_OUTPUT
@@ -42,6 +44,7 @@ jobs:
           echo "DEFAULT_ASSETS_VERSION=$(jq -r '.default_assets_version' inputs.json)" >> $GITHUB_OUTPUT
           echo "BLOCK_MATERIAL=$(jq -r '.block_material' inputs.json)" >> $GITHUB_OUTPUT
           echo "ATTACHABLE_MATERIAL=$(jq -r '.attachable_material' inputs.json)" >> $GITHUB_OUTPUT
+          echo "ARCHIVE_SCRATCH=$(jq -r '.archive_scratch' inputs.json)" >> $GITHUB_OUTPUT
   convert-pack:
     runs-on: ubuntu-latest
     needs: get-pack-info
@@ -78,6 +81,7 @@ jobs:
           DEFAULT_ASSETS_VERSION: ${{ needs.get-pack-info.outputs.default_assets_version }}
           BLOCK_MATERIAL: ${{ needs.get-pack-info.outputs.block_material }}
           ATTACHABLE_MATERIAL: ${{ needs.get-pack-info.outputs.attachable_material }}
+          ARCHIVE_SCRATCH: ${{ needs.get-pack-info.outputs.archive_scratch }}
         run: |
           mkdir -p staging
           cp converter.sh staging/
@@ -89,7 +93,7 @@ jobs:
             COLUMNS=$COLUMNS-1 curl --no-styled-output -#L -o merge_pack.zip "${MERGE_PACK_URL}"
             MERGE_PACK_FILE="merge_pack.zip"
           fi
-          ./converter.sh input_pack.zip -w "false" -m ${MERGE_PACK_FILE} -a ${ATTACHABLE_MATERIAL} -b ${BLOCK_MATERIAL} -f ${DEFAULT_PACK_URL} -v ${DEFAULT_ASSETS_VERSION}
+          ./converter.sh input_pack.zip -w "false" -m ${MERGE_PACK_FILE} -a ${ATTACHABLE_MATERIAL} -b ${BLOCK_MATERIAL} -f ${DEFAULT_PACK_URL} -v ${DEFAULT_ASSETS_VERSION} -s ${ARCHIVE_SCRATCH} -u "true"
       - name: Upload converted pack
         uses: actions/upload-artifact@v3
         with:

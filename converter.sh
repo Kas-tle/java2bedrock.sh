@@ -69,7 +69,7 @@ else
 fi
 
 # get user defined start flags
-while getopts w:m:a:b:f:v: flag "${@:2}"
+while getopts w:m:a:b:f:v:s:u: flag "${@:2}"
 do
     case "${flag}" in
         w) warn=${OPTARG};;
@@ -78,8 +78,17 @@ do
         b) block_material=${OPTARG};;
         f) fallback_pack=${OPTARG};;
         v) default_asset_version=${OPTARG};;
+        s) save_scratch=${OPTARG};;
+        u) disable_ulimit=${OPTARG};;
     esac
 done
+
+if [[ ${disable_ulimit} == "true" ]]
+then
+  ulimit -s unlimited
+  status_message info "Changed ulimit settings for script:"
+  ulimit -a
+fi
 
 # warn user about limitations of the script
 printf '\e[1;31m%-6s\e[m\n' "
@@ -150,11 +159,12 @@ fi
 
 # Download geyser mappings
 status_message process "Downloading the latest geyser item mappings"
+mkdir -p ./scratch_files
 printf "\e[3m\e[37m"
 echo
-COLUMNS=$COLUMNS-1 curl --no-styled-output -#L -o item_mappings.json https://raw.githubusercontent.com/GeyserMC/mappings/master/items.json
+COLUMNS=$COLUMNS-1 curl --no-styled-output -#L -o scratch_files/item_mappings.json https://raw.githubusercontent.com/GeyserMC/mappings/master/items.json
 echo
-COLUMNS=$COLUMNS-1 curl --no-styled-output -#L -o item_texture.json https://raw.githubusercontent.com/Kas-tle/java2bedrockMappings/main/item_texture.json
+COLUMNS=$COLUMNS-1 curl --no-styled-output -#L -o scratch_files/item_texture.json https://raw.githubusercontent.com/Kas-tle/java2bedrockMappings/main/item_texture.json
 echo
 printf "${C_CLOSE}"
 
@@ -162,7 +172,7 @@ printf "${C_CLOSE}"
 # technically we only need to iterate over actual item models that contain overrides, but the constraints of bash would likely make such an approach less efficent 
 status_message process "Iterating through all vanilla associated model JSONs to generate initial predicate config\nOn a large pack, this may take some time...\n"
 
-jq --slurpfile item_texture item_texture.json --slurpfile item_mappings item_mappings.json -n '
+jq --slurpfile item_texture scratch_files/item_texture.json --slurpfile item_mappings scratch_files/item_mappings.json -n '
 [inputs | {(input_filename | sub("(.+)/(?<itemname>.*?).json"; .itemname)): .overrides?[]?}] |
 
 def maxdur($input):
@@ -238,7 +248,7 @@ inputs | {
   }
 ]
 
-' ${model_array[@]} | sponge parents.json
+' ${model_array[@]} | sponge scratch_files/parents.json
 
 # add initial parental information to config.json
 status_message critical "Removing config entries with non-supported parentals\n"
@@ -269,22 +279,22 @@ def gtest($input_g):
 .[1] | map_values(. + ({"parent": (intest(.path) // null)} | if gtest(.parent) == null then . else empty end))
 | walk(if type == "object" then with_entries(select(.value != null)) else . end)
 
-' parents.json config.json | sponge config.json
+' scratch_files/parents.json config.json | sponge config.json
 
 # obtain hashes of all model predicate info to ensure consistent model naming
-jq -r '.[] | [.geyserID, (.item + "_c" + (.nbt.CustomModelData | tostring) + "_d" + (.nbt.Damage | tostring) + "_u" + (.nbt.Unbreakable | tostring))] | @tsv | gsub("\\t";",")' config.json > paths.csv
+jq -r '.[] | [.geyserID, (.item + "_c" + (.nbt.CustomModelData | tostring) + "_d" + (.nbt.Damage | tostring) + "_u" + (.nbt.Unbreakable | tostring))] | @tsv | gsub("\\t";",")' config.json > scratch_files/paths.csv
 
 function write_hash () { 
     local hash=$(echo -n "${1}" | md5sum | head -c 7) && echo "${2},${hash}" >> "${3}"
 }
 
 while IFS=, read -r gid predicate
-    do write_hash "${predicate}" "${gid}" "hashes.csv" & 
-done < paths.csv > /dev/null
+    do write_hash "${predicate}" "${gid}" "scratch_files/hashes.csv" & 
+done < scratch_files/paths.csv > /dev/null
 
-jq -cR 'split(",")' hashes.csv | jq -s 'map({(.[0]): .[1]}) | add' > hashmap.json
+jq -cR 'split(",")' scratch_files/hashes.csv | jq -s 'map({(.[0]): .[1]}) | add' > scratch_files/hashmap.json
 
-jq --slurpfile hashmap hashmap.json '
+jq --slurpfile hashmap scratch_files/hashmap.json '
     map_values(
         .geyserID as $gid 
         | . += {"path_hash": ("gmdl_" + ($hashmap[] | .[($gid)]))}
@@ -456,7 +466,7 @@ done
 
 status_message completion "Initial pack setup complete\n"
 
-jq -r '.[] | select(.parent != null) | [.path, .geyserID, .parent, .namespace, .model_path, .model_name, .path_hash] | @tsv | gsub("\\t";",")' config.json | sponge pa.csv
+jq -r '.[] | select(.parent != null) | [.path, .geyserID, .parent, .namespace, .model_path, .model_name, .path_hash] | @tsv | gsub("\\t";",")' config.json | sponge scratch_files/pa.csv
 
 _start=1
 _end="$(jq -r '(. | length) + ([.[] | select(.parent != null)] | length)' config.json)"
@@ -483,10 +493,10 @@ do
     local model_name=${6}
     local path_hash=${7}
 
-    local elements="$(jq -rc '.elements' ${file} | tee ${gid}.elements.temp)"
+    local elements="$(jq -rc '.elements' ${file} | tee scratch_files/${gid}.elements.temp)"
     local element_parent=${file}
-    local textures="$(jq -rc '.textures' ${file} | tee ${gid}.textures.temp)"
-    local display="$(jq -rc '.display' ${file} | tee ${gid}.display.temp)"
+    local textures="$(jq -rc '.textures' ${file} | tee scratch_files/${gid}.textures.temp)"
+    local display="$(jq -rc '.display' ${file} | tee scratch_files/${gid}.display.temp)"
     status_message process "Locating parental info for child model with GeyserID ${gid}"
 
     # itterate through parented models until they all have geometry, display, and textures
@@ -494,38 +504,38 @@ do
     do
       if [[ ${elements} = null ]]
       then
-        local elements="$(jq -rc '.elements' ${parental} 2> /dev/null | tee ${gid}.elements.temp || (echo && echo null))"
+        local elements="$(jq -rc '.elements' ${parental} 2> /dev/null | tee scratch_files/${gid}.elements.temp || (echo && echo null))"
         local element_parent=${parental}
       fi
       if [[ ${textures} = null ]]
       then
-        local textures="$(jq -rc '.textures' ${parental} 2> /dev/null | tee ${gid}.textures.temp || (echo && echo null))"
+        local textures="$(jq -rc '.textures' ${parental} 2> /dev/null | tee scratch_files/${gid}.textures.temp || (echo && echo null))"
       fi
       if [[ ${display} = null ]]
       then
-        local display="$(jq -rc '.display' ${parental} 2> /dev/null | tee ${gid}.display.temp || (echo && echo null))"
+        local display="$(jq -rc '.display' ${parental} 2> /dev/null | tee scratch_files/${gid}.display.temp || (echo && echo null))"
       fi
       local parental="$(jq -rc 'def namespace: if contains(":") then sub("\\:(.+)"; "") else "minecraft" end; ("./assets/" + (.parent? | namespace) + "/models/" + ((.parent? // empty) | sub("(.*?)\\:"; "")) + ".json") // "null"' ${parental} 2> /dev/null || (echo && echo null))"
-      local texture_0="$(jq -rc 'def namespace: if contains(":") then sub("\\:(.+)"; "") else "minecraft" end; ("./assets/" + ([.[]][0]? | namespace) + "/textures/" + (([.[]][0]? // empty) | sub("(.*?)\\:"; "")) + ".png") // "null"' ${gid}.textures.temp)"
+      local texture_0="$(jq -rc 'def namespace: if contains(":") then sub("\\:(.+)"; "") else "minecraft" end; ("./assets/" + ([.[]][0]? | namespace) + "/textures/" + (([.[]][0]? // empty) | sub("(.*?)\\:"; "")) + ".png") // "null"' scratch_files/${gid}.textures.temp)"
     done
 
     # if we can, generate a model now
     if [[ ${elements} != null && ${textures} != null ]]
     then
-      jq -n --slurpfile jelements ${gid}.elements.temp --slurpfile jtextures ${gid}.textures.temp --slurpfile jdisplay ${gid}.display.temp '
+      jq -n --slurpfile jelements scratch_files/${gid}.elements.temp --slurpfile jtextures scratch_files/${gid}.textures.temp --slurpfile jdisplay scratch_files/${gid}.display.temp '
       {
         "textures": ($jtextures[]),
         "elements": ($jelements[])
       } + (if $jdisplay then ({"display": ($jdisplay[])}) else {} end)
       ' | sponge ${file}
-      echo >> count.csv
-      local tot_pos=$(wc -l < count.csv)
+      echo >> scratch_files/count.csv
+      local tot_pos=$(wc -l < scratch_files/count.csv)
       status_message completion "Located all parental info for Child ${gid}\n$(ProgressBar ${tot_pos} ${_end})"
       echo
     # check if this is a 2d item dervived from ./assets/minecraft/models/builtin/generated
     elif [[ ${textures} != null && ${parental} = "./assets/minecraft/models/builtin/generated.json" && -f "${texture_0}" ]]
     then
-      jq -n --slurpfile jelements ${gid}.elements.temp --slurpfile jtextures ${gid}.textures.temp --slurpfile jdisplay ${gid}.display.temp '
+      jq -n --slurpfile jelements scratch_files/${gid}.elements.temp --slurpfile jtextures scratch_files/${gid}.textures.temp --slurpfile jdisplay scratch_files/${gid}.display.temp '
       {
         "textures": ([$jtextures[]][0])
       } + (if $jdisplay then ({"display": ($jdisplay[])}) else {} end)
@@ -534,32 +544,32 @@ do
       mkdir -p "./target/rp/textures/geyser/geyser_custom/${namespace}/${model_path}"
       cp "${texture_0}" "./target/rp/textures/geyser/geyser_custom/${namespace}/${model_path}/${model_name}.png"
       # add texture to item atlas
-      echo "${path_hash},textures/geyser/geyser_custom/${namespace}/${model_path}/${model_name}" >> icons.csv
-      echo "${gid}" >> generated.csv
-      echo >> count.csv
-      local tot_pos=$(wc -l < count.csv)
+      echo "${path_hash},textures/geyser/geyser_custom/${namespace}/${model_path}/${model_name}" >> scratch_files/icons.csv
+      echo "${gid}" >> scratch_files/generated.csv
+      echo >> scratch_files/count.csv
+      local tot_pos=$(wc -l < scratch_files/count.csv)
       status_message completion "Located all parental info for 2D Child ${gid}\n$(ProgressBar ${tot_pos} ${_end})"
       echo
     # otherwise, remove it from our config
     else
-      echo "${gid}" >> deleted.csv
-      echo >> count.csv
-      local tot_pos=$(wc -l < count.csv)
+      echo "${gid}" >> scratch_files/deleted.csv
+      echo >> scratch_files/count.csv
+      local tot_pos=$(wc -l < scratch_files/count.csv)
       status_message critical "Deleting ${gid} from config as no suitable parent information was found\n$(ProgressBar ${tot_pos} ${_end})"
       echo
     fi
-    rm -f ${gid}.elements.temp ${gid}.textures.temp ${gid}.display.temp
+    rm -f scratch_files/${gid}.elements.temp scratch_files/${gid}.textures.temp scratch_files/${gid}.display.temp
   }
   wait_for_jobs
   resolve_parental "${file}" "${gid}" "${parental}" "${namespace}" "${model_path}" "${model_name}" "${path_hash}" &
 
-done < pa.csv
+done < scratch_files/pa.csv
 wait # wait for all the jobs to finish
 
 # update generated models in config
-if [[ -f generated.csv ]]
+if [[ -f scratch_files/generated.csv ]]
 then
-  jq -cR 'split(",")' generated.csv | jq -s 'map({(.[0]): true}) | add' > generated.json
+  jq -cR 'split(",")' scratch_files/generated.csv | jq -s 'map({(.[0]): true}) | add' > scratch_files/generated.json
   jq -s '
   .[0] as $generated_models
   | .[1]
@@ -567,25 +577,25 @@ then
     .geyserID as $gid
     | .generated = ($generated_models[($gid)] // false)
   )
-  ' generated.json config.json | sponge config.json
+  ' scratch_files/generated.json config.json | sponge config.json
 fi
 
 # add icon textures to item atlas
-if [[ -f icons.csv ]]
+if [[ -f scratch_files/icons.csv ]]
 then
-  jq -cR 'split(",")' icons.csv | jq -s 'map({(.[0]): {"textures": .[1]}}) | add' > icons.json
+  jq -cR 'split(",")' scratch_files/icons.csv | jq -s 'map({(.[0]): {"textures": .[1]}}) | add' > scratch_files/icons.json
   jq -s '
   .[0] as $icons
   | .[1] 
   | .texture_data += $icons
-  ' icons.json ./target/rp/textures/item_texture.json | sponge ./target/rp/textures/item_texture.json
+  ' scratch_files/icons.json ./target/rp/textures/item_texture.json | sponge ./target/rp/textures/item_texture.json
 fi
 
 # delete unsuitable models
-if [[ -f deleted.csv ]]
+if [[ -f scratch_files/deleted.csv ]]
 then
-  jq -cR 'split(",")' deleted.csv  | jq -s '.' > deleted.json
-  jq -s '.[0] as $deleted | .[1] | delpaths($deleted)' deleted.json config.json | sponge config.json
+  jq -cR 'split(",")' scratch_files/deleted.csv  | jq -s '.' > scratch_files/deleted.json
+  jq -s '.[0] as $deleted | .[1] | delpaths($deleted)' scratch_files/deleted.json config.json | sponge config.json
 fi
 
 status_message process "Compiling final model list"
@@ -595,7 +605,7 @@ model_list=( $(jq -r '.[] | select(.generated == false) | .path' config.json) )
 # get our final texture list to be atlased
 # get a bash array of all texture files in our resource pack
 status_message process "Generating an array of all model PNG files to crosscheck with our atlas"
-jq -n '$ARGS.positional' --args $(find ./assets/**/textures -type f -name '*.png') | sponge all_textures.temp
+jq -n '$ARGS.positional' --args $(find ./assets/**/textures -type f -name '*.png') | sponge scratch_files/all_textures.temp
 # get bash array of all texture files listed in our models
 status_message process "Generating union atlas arrays for all model textures"
 jq -s '
@@ -603,7 +613,7 @@ def namespace:
   if contains(":") then sub("\\:(.+)"; "") else "minecraft" end; 
 [.[]| [.textures[]?] | unique] 
 | map(map("./assets/" + (. | namespace) + "/textures/" + (. | sub("(.*?)\\:"; "")) + ".png"))
-' ${model_list[@]} | sponge union_atlas.temp
+' ${model_list[@]} | sponge scratch_files/union_atlas.temp
 jq '
 def intersects(a;b): any(a[]; . as $x | any(b[]; . == $x));
 
@@ -614,19 +624,19 @@ def mapatlas(set):
 
 [["./assets/minecraft/textures/0.png"]] +
 reduce .[] as $entry ([]; mapatlas($entry))
-' union_atlas.temp | sponge union_atlas.temp
-total_union_atlas=($(jq -r 'length - 1' union_atlas.temp))
+' scratch_files/union_atlas.temp | sponge scratch_files/union_atlas.temp
+total_union_atlas=($(jq -r 'length - 1' scratch_files/union_atlas.temp))
 
-mkdir spritesheet
+mkdir -p scratch_files/spritesheet
 status_message process "Generating $((1+${total_union_atlas})) sprite sheets..."
 for i in $(seq 0 ${total_union_atlas})
 do
   generate_atlas () {
     # find the union of all texture files listed in this atlas and all texture files in our resource pack
-    local texture_list=( $(jq -s --arg index "${1}" -r '(.[1][($index | tonumber)] - .[0] | length > 0) as $fallback_needed | ((.[1][($index | tonumber)] - (.[1][($index | tonumber)] - .[0])) + (if $fallback_needed then ["./assets/minecraft/textures/0.png"] else [] end)) | .[]' all_textures.temp union_atlas.temp) )
+    local texture_list=( $(jq -s --arg index "${1}" -r '(.[1][($index | tonumber)] - .[0] | length > 0) as $fallback_needed | ((.[1][($index | tonumber)] - (.[1][($index | tonumber)] - .[0])) + (if $fallback_needed then ["./assets/minecraft/textures/0.png"] else [] end)) | .[]' scratch_files/all_textures.temp scratch_files/union_atlas.temp) )
     status_message process "Generating sprite sheet ${1} of ${total_union_atlas}"
-    spritesheet-js -f json --name spritesheet/${1} --fullpath ${texture_list[@]} > /dev/null 2>&1
-    echo ${1} >> atlases.csv
+    spritesheet-js -f json --name scratch_files/spritesheet/${1} --fullpath ${texture_list[@]} > /dev/null 2>&1
+    echo ${1} >> scratch_files/atlases.csv
   }
   wait_for_jobs
   generate_atlas "${i}" &
@@ -634,18 +644,18 @@ done
 wait # wait for all the jobs to finish
 
 # generate terrain texture atlas
-jq -cR 'split(",")' atlases.csv | jq -s 'map({("gmdl_atlas_" + .[0]): {"textures": ("textures/geyser/geyser_custom/" + .[0])}}) | add' > atlases.json
+jq -cR 'split(",")' scratch_files/atlases.csv | jq -s 'map({("gmdl_atlas_" + .[0]): {"textures": ("textures/geyser/geyser_custom/" + .[0])}}) | add' > scratch_files/atlases.json
 jq -s '
 .[0] as $atlases
 | .[1] 
 | .texture_data += $atlases
-' atlases.json ./target/rp/textures/terrain_texture.json | sponge ./target/rp/textures/terrain_texture.json
+' scratch_files/atlases.json ./target/rp/textures/terrain_texture.json | sponge ./target/rp/textures/terrain_texture.json
 
 status_message completion "All sprite sheets generated"
-mv spritesheet/*.png ./target/rp/textures/geyser/geyser_custom
+mv scratch_files/spritesheet/*.png ./target/rp/textures/geyser/geyser_custom
 
 # begin conversion
-jq -r '.[] | [.path, .geyserID, .generated, .namespace, .model_path, .model_name, .path_hash] | @tsv | gsub("\\t";",")' config.json | sponge all.csv
+jq -r '.[] | [.path, .geyserID, .generated, .namespace, .model_path, .model_name, .path_hash] | @tsv | gsub("\\t";",")' config.json | sponge scratch_files/all.csv
 
 while IFS=, read -r file gid generated namespace model_path model_name path_hash
 do
@@ -661,14 +671,14 @@ do
     # find which texture atlas we will be using if not generated
     if [[ ${generated} = "false" ]]
     then
-      local atlas_index=$(jq -r -s 'def namespace: if contains(":") then sub("\\:(.+)"; "") else "minecraft" end; def intersects(a;b): any(a[]; . as $x | any(b[]; . == $x)); (.[0] | [.textures[]] | map("./assets/" + (. | namespace) + "/textures/" + (. | sub("(.*?)\\:"; "")) + ".png")) as $inp | [(.[1] | (map(if intersects(.;$inp) then . else empty end)[])) as $entry | .[1] | to_entries[] | select(.value == $entry).key][0] // 0' ${file} union_atlas.temp)
+      local atlas_index=$(jq -r -s 'def namespace: if contains(":") then sub("\\:(.+)"; "") else "minecraft" end; def intersects(a;b): any(a[]; . as $x | any(b[]; . == $x)); (.[0] | [.textures[]] | map("./assets/" + (. | namespace) + "/textures/" + (. | sub("(.*?)\\:"; "")) + ".png")) as $inp | [(.[1] | (map(if intersects(.;$inp) then . else empty end)[])) as $entry | .[1] | to_entries[] | select(.value == $entry).key][0] // 0' ${file} scratch_files/union_atlas.temp)
     else
       local atlas_index=0
     fi
 
     status_message process "Starting conversion of model with GeyserID ${gid}"
     mkdir -p ./target/rp/models/blocks/geyser_custom/${namespace}/${model_path}
-    jq --slurpfile atlas spritesheet/${atlas_index}.json --arg generated "${generated}" --arg binding "c.item_slot == 'head' ? 'head' : q.item_slot_to_bone_name(c.item_slot)" --arg path_hash "${path_hash}" -c '
+    jq --slurpfile atlas scratch_files/spritesheet/${atlas_index}.json --arg generated "${generated}" --arg binding "c.item_slot == 'head' ? 'head' : q.item_slot_to_bone_name(c.item_slot)" --arg path_hash "${path_hash}" -c '
     .textures as $texture_list |
     def namespace: if contains(":") then sub("\\:(.+)"; "") else "minecraft" end;
     def tobool: if .=="true" then true elif .=="false" then false else null end;
@@ -977,15 +987,15 @@ do
       ' | sponge ./target/rp/attachables/geyser_custom/${namespace}/${model_path}/${model_name}.attachable.json
 
       # progress
-      echo >> count.csv
-      local tot_pos=$((cur_pos + $(wc -l < count.csv)))
+      echo >> scratch_files/count.csv
+      local tot_pos=$((cur_pos + $(wc -l < scratch_files/count.csv)))
       status_message completion "${gid} converted\n$(ProgressBar ${tot_pos} ${_end})"
       echo
    }
    wait_for_jobs
    convert_model ${file} ${gid} ${generated} ${namespace} ${model_path} ${model_name} ${path_hash} &
 
-done < all.csv
+done < scratch_files/all.csv
 wait # wait for all the jobs to finish
 
 # write lang file US
@@ -1082,7 +1092,7 @@ jq '
 ' config.json | sponge ./target/geyser_mappings.json
 
 # Add sprites if sprites.json exists in the root pack
-if [ -f sprites.json ]; then
+if [ -f scratch_files/sprites.json ]; then
   status_message process "Adding provided sprite paths from sprites.json"
   jq -r '
   to_entries 
@@ -1091,19 +1101,19 @@ if [ -f sprites.json ]; then
   | [((.item | split(":")[-1]) + "_c" + (.custom_model_data | tostring) + "_d" + (.damage_predicate | tostring) + "_u" + (.unbreakable | tostring)), .sprite] 
   | @tsv 
   | gsub("\\t";",")
-  ' sprites.json > sprites.csv
+  ' scratch_files/sprites.json > scratch_files/sprites.csv
 
   while IFS=, read -r predicate icon
-    do write_hash "${predicate}" "${icon}"  "sprite_hashes.csv" &
-  done < sprites.csv > /dev/null
+    do write_hash "${predicate}" "${icon}"  "scratch_files/sprite_hashes.csv" &
+  done < scratch_files/sprites.csv > /dev/null
 
-  jq -cR 'split(",")' sprite_hashes.csv | jq -s 'map({("gmdl_" + .[1]): {"textures": .[0]}}) | add' > sprite_hashmap.json
+  jq -cR 'split(",")' scratch_files/sprite_hashes.csv | jq -s 'map({("gmdl_" + .[1]): {"textures": .[0]}}) | add' > scratch_files/sprite_hashmap.json
 
   jq -s '
   .[0] as $icon_sprites
   | .[1] 
   | .texture_data += $icon_sprites
-  ' sprite_hashmap.json ./target/rp/textures/item_texture.json | sponge ./target/rp/textures/item_texture.json
+  ' scratch_files/sprite_hashmap.json ./target/rp/textures/item_texture.json | sponge ./target/rp/textures/item_texture.json
   
   jq -s '
   {
@@ -1118,14 +1128,21 @@ if [ -f sprites.json ]; then
     ))}
     ) | add)
   }
-  ' sprite_hashmap.json ./target/geyser_mappings.json | sponge ./target/geyser_mappings.json
+  ' scratch_files/sprite_hashmap.json ./target/geyser_mappings.json | sponge ./target/geyser_mappings.json
   
-  rm -f sprites.json && rm -f sprites.csv && rm -f sprite_hashes.csv && rm -f sprite_hashmap.json
 fi
 
 # cleanup
-status_message critical "Deleting scratch files"
-rm -rf spritesheet && rm -rf assets && rm -f pack.mcmeta && rm -f pack.png && rm -f parents.json && rm -f all.csv && rm -f pa.csv && rm -f *.temp && rm -f item_mappings.json && rm -f item_texture.json && rm paths.csv && rm hashes.csv && rm hashmap.json && rm count.csv && rm -f atlases.csv && rm -f atlases.json && rm -f generated.csv && rm -f generated.json && rm -f icons.csv && rm -f icons.json && rm -f deleted.csv && rm -f deleted.json
+rm -rf assets && rm -f pack.mcmeta && rm -f pack.png
+if [[ ${save_scratch} != "true" ]] 
+then
+  rm -rf scratch_files
+  status_message critical "Deleted scratch files"
+else
+  cd ./scratch_files > /dev/null && zip -rq8 scratch_files.zip . -x "*/.*" && cd .. > /dev/null && mv ./scratch_files/scratch_files.zip ./target/scratch_files.zip
+  status_message completion "Archived scratch files\n"
+fi
+
 
 status_message process "Compressing output packs"
 mkdir ./target/packaged
