@@ -90,8 +90,8 @@ body:
       description: |
         Should scratch files be archived? This will create a zip file containing the scratch files used by the script during the conversion process. If not selected, this will default to `false`.
       options:
-        - true
-        - false
+        - 'true'
+        - 'false'
   - type: checkboxes
     id: terms
     attributes:
