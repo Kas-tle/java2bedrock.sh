@@ -85,12 +85,7 @@ done
 
 if [[ ${disable_ulimit} == "true" ]]
 then
-  ulimit -c unlimited
-  ulimit -i 31675
-  ulimit -l 65536
-  ulimit -o 1048576
   ulimit -s unlimited
-  ulimit -u unlimited
   status_message info "Changed ulimit settings for script:"
   ulimit -a
 fi
