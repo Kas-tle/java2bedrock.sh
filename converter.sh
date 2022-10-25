@@ -89,7 +89,9 @@ then
   ulimit -s unlimited
   status_message info "Changed ulimit settings for script:"
   ulimit -a
+  echo | xargs --show-limits
   getconf ARG_MAX
+
 fi
 
 # warn user about limitations of the script
