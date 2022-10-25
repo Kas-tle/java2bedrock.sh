@@ -636,8 +636,8 @@ do
   generate_atlas () {
     # find the union of all texture files listed in this atlas and all texture files in our resource pack
     local texture_list=( $(jq -s --arg index "${1}" -r '(.[1][($index | tonumber)] - .[0] | length > 0) as $fallback_needed | ((.[1][($index | tonumber)] - (.[1][($index | tonumber)] - .[0])) + (if $fallback_needed then ["./assets/minecraft/textures/0.png"] else [] end)) | .[]' scratch_files/all_textures.temp scratch_files/union_atlas.temp) )
-    status_message process "Generating sprite sheet ${1} of ${total_union_atlas} [arg_max=$(getconf ARG_MAX)]"
-    spritesheet-js -f json --name scratch_files/spritesheet/${1} --fullpath ${texture_list[@]} 1> /dev/null
+    status_message process "Generating sprite sheet ${1} of ${total_union_atlas}"
+    prlimit --stack=6453600 spritesheet-js -f json --name scratch_files/spritesheet/${1} --fullpath ${texture_list[@]} 1> /dev/null
     echo ${1} >> scratch_files/atlases.csv
   }
   wait_for_jobs
