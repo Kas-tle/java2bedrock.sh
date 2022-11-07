@@ -21,30 +21,32 @@ For example:
 ./converter.sh MyResourcePack.zip -w "false" -m "MyBedrock.mcpack" -a "entity_alphatest_one_sided" -b "alpha_test" -f "null" -v "1.18.2"
 ```
 
+### Item Icons
+
 If you prepare 2D sprites for your 3D models, you can provide the converter with mappings for these sprites to be incorporated into item_texture.json and the exported Geyser mappings. To do so, simply include a file called `sprites.json` in the root of your Java resource pack. The format of this file is as follows:
 ```json
 {
     "leather": [
         {
             "custom_model_data": 1,
-            "sprite": "textures/path/to/bedrock_rp/texture1"
+            "sprite": "textures/path/to/texture_in_bedrock_rp/texture1"
         },
         {
             "custom_model_data": 2,
-            "sprite": "textures/path/to/bedrock_rp/texture2"
+            "sprite": "textures/path/to/texture_in_bedrock_rp/texture2"
         }
     ],
     "diamond_axe": [
         {
             "damage_predicate": 2,
             "unbreakable": true,
-            "sprite": "textures/path/to/bedrock_rp/texture3"
+            "sprite": "textures/path/to/texture_in_bedrock_rp/texture3"
         }
     ]
 }
 ```
 
-When utilizing this feature, you should also use the merge feature to combine the converted pack with an existing Bedrock resource pack containing the specificed sprite textures.
+When utilizing this feature, you should also use the merge feature to combine the converted pack with an existing Bedrock resource pack containing the specificed sprite textures. If using the Github Actions based converter, simply provide a direct download URL of said Bedrock resource pack as done for the Java pack.
 
 ### Github Actions
 
