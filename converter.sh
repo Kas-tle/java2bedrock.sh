@@ -321,7 +321,7 @@ uuid3=($(uuidgen))
 uuid4=($(uuidgen))
 
 # get pack description if we have one
-pack_desc=($(jq -r '(.pack.description // "Geyser 3D Items Resource Pack")' ./pack.mcmeta))
+pack_desc="$(jq -r '(.pack.description // "Geyser 3D Items Resource Pack")' ./pack.mcmeta)"
 
 # generate rp manifest.json
 status_message process "Generating resource pack manifest"
