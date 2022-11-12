@@ -3,10 +3,76 @@
 </div>
 
 
-## Usage
+# Installation
+> **Warning**
+> The Script Will Not Work If you don't install the dependencies
 
-### Local
+- [jq](https://stedolan.github.io/jq/download/) (1.6+)
+- [sponge](https://joeyh.name/code/moreutils/)
+- [imagemagick](https://imagemagick.org/script/download.php) (6+)
+- [nodejs](https://nodejs.org/en/)
+- [spritesheet-js](https://www.npmjs.com/package/spritesheet-js)
 
+<h2>Debian
+<img src=".github/assets/Debian.png" width="25">
+Ubuntu
+<img src=".github/assets/Ubuntu.png" width="25">
+Mint
+<img src=".github/assets/Linux-Mint.png" width="25">
+</h2>
+
+```
+sudo apt-get install moreutils jq imagemagick unzip zip nodejs uuid-runtime
+npm i -g spritesheet-js
+```
+
+<h2>MacOS <img src=".github/assets/Apple.png" width="25"></h2>
+
+```
+brew install moreutils jq imagemagick unzip zip nodejs uuid-runtime
+npm i -g spritesheet-js
+```
+
+<h2>RHEL
+<img src=".github/assets/Red-Hat.png" width="25">
+Fedora
+<img src=".github/assets/Fedora.png" width="25">
+Centos
+<img src=".github/assets/Centos.png" width="25">
+</h2>
+
+```
+sudo yum install moreutils jq imagemagick unzip zip nodejs uuid-runtime
+npm i -g spritesheet-js
+```
+
+<h2>Arch Linux</h2>
+
+```
+sudo pacman -S moreutils jq imagemagick unzip zip nodejs uuid-runtime
+npm i -g spritesheet-js
+```
+
+<h2>Windows <img src=".github/assets/Windows.png" width="25"></h2>
+
+> **Warning**
+> Impossible consider [WSL](https://docs.microsoft.com/en-us/windows/wsl/install-win10).
+
+#### Special Notes for WSL (Ubuntu)
+
+In general, packages on WSL seem to be a little wonky, and sometimes [jq-1.5](https://github.com/stedolan/jq/releases/tag/jq-1.5) will be installed, which will not work.\
+To manually install [jq-1.6](https://github.com/stedolan/jq/releases/tag/jq-1.6) on [WSL](https://docs.microsoft.com/en-us/windows/wsl/install-win10), at least for [Ubuntu](https://apps.microsoft.com/store/detail/ubuntu/9PDXGNCFSCZV):
+```sh
+wget https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64 && sudo chmod +x jq-linux64 && sudo mv jq-linux64 /usr/bin/jq
+```
+
+If you install [spritesheet-js](https://www.npmjs.com/package/spritesheet-js) globally, but the script fails due to missing the dependency, **ensure** that the folder containing your global node modules is added to your path.\
+If, after installing, `which spritesheet-js` returns no output, you may add global node modules to your path by:
+```sh
+echo "export PATH=$PATH:$(npm config --global get prefix)/bin" >> ~/.bashrc && source ~/.bashrc
+```
+
+# Usage
 To run, simply:
 ```
 ./converter.sh MyResourcePack.zip
@@ -24,55 +90,6 @@ For example:
 
 ```sh
 ./converter.sh MyResourcePack.zip -w "false" -m "MyBedrock.mcpack" -a "entity_alphatest_one_sided" -b "alpha_test" -f "null" -v "1.18.2"
-```
-
-## Dependency Installation
-> **Warning**
-> The Script Will Not Work If you don't install the dependencies
-
-- [jq](https://stedolan.github.io/jq/download/) (1.6+)
-- [sponge](https://joeyh.name/code/moreutils/)
-- [imagemagick](https://imagemagick.org/script/download.php) (6+)
-- [nodejs](https://nodejs.org/en/)
-- [spritesheet-js](https://www.npmjs.com/package/spritesheet-js)
-
-### Debian, Ubuntu, & Mint
-```
-sudo apt-get install moreutils jq imagemagick unzip zip nodejs uuid-runtime
-npm i -g spritesheet-js
-```
-
-### MacOS
-```
-brew install moreutils jq imagemagick unzip zip nodejs uuid-runtime
-npm i -g spritesheet-js
-```
-
-### RHEL, Fedora, & Centos
-```
-sudo yum install moreutils jq imagemagick unzip zip nodejs uuid-runtime
-npm i -g spritesheet-js
-```
-
-### Arch Linux
-```
-sudo pacman -S moreutils jq imagemagick unzip zip nodejs uuid-runtime
-npm i -g spritesheet-js
-```
-
-### Windows
-Impossible; consider [WSL](https://docs.microsoft.com/en-us/windows/wsl/install-win10).
-
-#### Special Notes for WSL (Ubuntu)
-
-In general, packages on WSL seem to be a little wonky, and sometimes jq-1.5 will be installed, which will not work. To manually install jq-1.6 on WSL, at least for Ubuntu:
-```sh
-wget https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64 && sudo chmod +x jq-linux64 && sudo mv jq-linux64 /usr/bin/jq
-```
-
-If you install spritesheet-js globally, but the script fails due to missing the dependency, ensure that the folder containing your global node modules is added to your path. If, after installing, `which spritesheet-js` returns no output, you may add global node modules to your path by:
-```sh
-echo "export PATH=$PATH:$(npm config --global get prefix)/bin" >> ~/.bashrc && source ~/.bashrc
 ```
 ### Item Icons
 
@@ -98,18 +115,27 @@ If you prepare 2D sprites for your 3D models, you can provide the converter with
     ]
 }
 ```
-
+<details closed>
+<summary>Important Information ℹ</summary>
 When utilizing this feature, you should also use the merge feature to combine the converted pack with an existing Bedrock resource pack containing the specified sprite textures. If using the GitHub Actions-based converter, simply provide a direct download URL of said Bedrock resource pack as done for the Java pack.
+</details>
+
 
 ### GitHub Actions
 
-You may also run the converter through Github Actions in this repository by creating an issue with the [Pack Conversion](https://github.com/Kas-tle/java2bedrock.sh/issues/new?assignees=&labels=conversion&template=pack-conversion.yml&title=%5BPack%5D%3A+) template. You are only required to enter the link to the Java pack, though the options described above may also be configured. Your pack will then be queued for conversion by GitHub Actions. After the conversion is complete, the GitHub Actions bot will reply to your issue with a link to download your converted pack and associated mappings file. Included in the bundle is a behavior pack and addon to view the models in single-player mode, as well as a configuration file containing the paths to the models converted from the Java resource pack and their corresponding identifiers in the Bedrock resource pack.
+You may also run the converter through Github Actions in this repository by creating an issue with the [Pack Conversion](https://github.com/Kas-tle/java2bedrock.sh/issues/new?assignees=&labels=conversion&template=pack-conversion.yml&title=%5BPack%5D%3A+) template. \
+You are only required to enter the link to the Java pack, though the options described above may also be configured.\
+Your pack will then be queued for conversion by GitHub Actions.\
+After the conversion is complete, the GitHub Actions bot will reply to your issue with a link to download your converted pack and associated mappings file.\
+Included in the bundle is a behavior pack and addon to view the models in single-player mode, as well as a configuration file containing the paths to the models converted from the Java resource pack and their corresponding identifiers in the Bedrock resource pack.
 
 ## About
-
-**NOTICE:** Due to [MCPE-152191](https://bugs.mojang.com/browse/MCPE-152191), a [resource [pack](https://bugs.mojang.com/secure/attachment/473588/473588_BlockGeoFi.mcpack) with a marketplace UUID that has been whitelisted to use the old block rendering engine must be applied above the resource pack containing the block models for them to render properly. This is only required to preview the models in-game with an inventory icon. Geyser does not currently support the use of block models, so this script will simply use the icon of the vanilla item.
-
-The script has been updated to handle parent models and 2D items. It will generate multiple sprite sheets for 3D models without repeating the inclusion of any given texture. 2D item textures will be copied over individually. Note that sprites for 3D items must be added manually.
+> **Note**
+> Due to [MCPE-152191](https://bugs.mojang.com/browse/MCPE-152191), a [resource [pack](https://bugs.mojang.com/secure/attachment/473588/473588_BlockGeoFi.mcpack) with a marketplace UUID that has been whitelisted to use the old block rendering engine must be applied above the resource pack containing the block models for them to render properly. This is only required to preview the models in-game with an inventory icon.\
+Geyser does not currently support the use of block models, so this script will simply use the icon of the vanilla item.\
+The script has been updated to handle parent models and 2D items.\
+It will generate multiple sprite sheets for 3D models without repeating the inclusion of any given texture.\
+2D item textures will be copied over individually. Note that sprites for 3D items must be added manually.\
 
 Your script and resource pack zip file must be in the same directory. Ensure that this zip file is properly set up. It should not have a root directory. Your resource pack must also be formatted correctly, to vanilla specifications. By default, this script will download the default assets to generate texture atlases in cases in which you have utilized those. If you wish to use different default assets, you may specify this at the beginning. The default pack will then be downloaded after your specified assets, with your specified assets taking precedence. As long as you provide valid JSON, the script should output something you can use.
 
