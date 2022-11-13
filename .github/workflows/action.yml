@@ -1,7 +1,6 @@
 name: Conversion Request
 on:
   issues:
-  pull_request:
     types:
       - labeled
 
