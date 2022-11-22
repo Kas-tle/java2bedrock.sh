@@ -1096,7 +1096,7 @@ jq '
 ' config.json | sponge ./target/geyser_mappings.json
 
 # Add sprites if sprites.json exists in the root pack
-if [ -f scratch_files/sprites.json ]; then
+if [ -f sprites.json ]; then
   status_message process "Adding provided sprite paths from sprites.json"
   jq -r '
   to_entries 
@@ -1105,7 +1105,7 @@ if [ -f scratch_files/sprites.json ]; then
   | [((.item | split(":")[-1]) + "_c" + (.custom_model_data | tostring) + "_d" + (.damage_predicate | tostring) + "_u" + (.unbreakable | tostring)), .sprite] 
   | @tsv 
   | gsub("\\t";",")
-  ' scratch_files/sprites.json > scratch_files/sprites.csv
+  ' sprites.json > scratch_files/sprites.csv
 
   while IFS=, read -r predicate icon
     do write_hash "${predicate}" "${icon}"  "scratch_files/sprite_hashes.csv" &
