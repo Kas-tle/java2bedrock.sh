@@ -215,7 +215,7 @@ if contains(":") then sub("\\:(.+)"; "") else "minecraft" end
 
 }) | .[]]
 | walk(if type == "object" then with_entries(select(.value != null)) else . end)
-| to_entries | map( ((.value.geyserID = "gmdl_\(1+.key)" | .value.geometry = ("geometry.geyser_custom." + "gmdl_\(1+.key)")) | .value))
+| to_entries | map( ((.value.geyserID = "gmdl_\(1+.key)") | .value))
 | INDEX(.geyserID)
 
 ' ${item_folder} ${block_folder} > config.json || { status_message error "Invalid JSON exists in block or item folder! See above log."; exit 1; }
@@ -286,22 +286,27 @@ def gtest($input_g):
 ' scratch_files/parents.json config.json | sponge config.json
 
 # obtain hashes of all model predicate info to ensure consistent model naming
-jq -r '.[] | [.geyserID, (.item + "_c" + (.nbt.CustomModelData | tostring) + "_d" + (.nbt.Damage | tostring) + "_u" + (.nbt.Unbreakable | tostring))] | @tsv | gsub("\\t";",")' config.json > scratch_files/paths.csv
+jq -r '.[] | [.geyserID, (.item + "_c" + (.nbt.CustomModelData | tostring) + "_d" + (.nbt.Damage | tostring) + "_u" + (.nbt.Unbreakable | tostring)), .path] | @tsv | gsub("\\t";",")' config.json > scratch_files/paths.csv
 
 function write_hash () { 
-    local hash=$(echo -n "${1}" | md5sum | head -c 7) && echo "${2},${hash}" >> "${3}"
+    local entry_hash=$(echo -n "${1}" | md5sum | head -c 7)
+    local path_hash=$(echo -n "${2}" | md5sum | head -c 7)
+    echo "${3},${entry_hash},${path_hash}" >> "${4}"
 }
 
-while IFS=, read -r gid predicate
-    do write_hash "${predicate}" "${gid}" "scratch_files/hashes.csv" & 
+while IFS=, read -r gid predicate path
+    do write_hash "${predicate}" "${path}" "${gid}" "scratch_files/hashes.csv" &
 done < scratch_files/paths.csv > /dev/null
 
-jq -cR 'split(",")' scratch_files/hashes.csv | jq -s 'map({(.[0]): .[1]}) | add' > scratch_files/hashmap.json
+jq -cR 'split(",")' scratch_files/hashes.csv | jq -s 'map({(.[0]): [.[1], .[2]]}) | add' > scratch_files/hashmap.json
 
 jq --slurpfile hashmap scratch_files/hashmap.json '
     map_values(
         .geyserID as $gid 
-        | . += {"path_hash": ("gmdl_" + ($hashmap[] | .[($gid)]))}
+        | . += {
+          "path_hash": ("gmdl_" + ($hashmap[] | .[($gid)] | .[0])),
+          "geometry": ("geo_" + ($hashmap[] | .[($gid)] | .[1]))
+          }
     )
 ' config.json | sponge config.json
 
@@ -659,9 +664,9 @@ status_message completion "All sprite sheets generated"
 mv scratch_files/spritesheet/*.png ./target/rp/textures/geyser/geyser_custom
 
 # begin conversion
-jq -r '.[] | [.path, .geyserID, .generated, .namespace, .model_path, .model_name, .path_hash] | @tsv | gsub("\\t";",")' config.json | sponge scratch_files/all.csv
+jq -r '.[] | [.path, .geyserID, .generated, .namespace, .model_path, .model_name, .path_hash, .geometry] | @tsv | gsub("\\t";",")' config.json | sponge scratch_files/all.csv
 
-while IFS=, read -r file gid generated namespace model_path model_name path_hash
+while IFS=, read -r file gid generated namespace model_path model_name path_hash geometry
 do
    convert_model () {
     local file=${1}
@@ -671,6 +676,7 @@ do
     local model_path=${5}
     local model_name=${6}
     local path_hash=${7}
+    local geometry=${8}
 
     # find which texture atlas we will be using if not generated
     if [[ ${generated} = "false" ]]
@@ -682,7 +688,7 @@ do
 
     status_message process "Starting conversion of model with GeyserID ${gid}"
     mkdir -p ./target/rp/models/blocks/geyser_custom/${namespace}/${model_path}
-    jq --slurpfile atlas scratch_files/spritesheet/${atlas_index}.json --arg generated "${generated}" --arg binding "c.item_slot == 'head' ? 'head' : q.item_slot_to_bone_name(c.item_slot)" --arg path_hash "${path_hash}" -c '
+    jq --slurpfile atlas scratch_files/spritesheet/${atlas_index}.json --arg generated "${generated}" --arg binding "c.item_slot == 'head' ? 'head' : q.item_slot_to_bone_name(c.item_slot)" --arg geometry "${geometry}" -c '
     .textures as $texture_list |
     def namespace: if contains(":") then sub("\\:(.+)"; "") else "minecraft" end;
     def tobool: if .=="true" then true elif .=="false" then false else null end;
@@ -740,7 +746,7 @@ do
         "format_version": "1.16.0",
         "minecraft:geometry": [{
           "description": {
-            "identifier": ("geometry.geyser_custom." + ($path_hash)),
+            "identifier": ( "geometry.geyser_custom." + ($geometry)),
             "texture_width": 16,
             "texture_height": 16,
             "visible_bounds_width": 4,
@@ -777,12 +783,12 @@ do
 
       # generate our rp animations via display settings
       mkdir -p ./target/rp/animations/geyser_custom/${namespace}/${model_path}
-      jq -c --arg path_hash "${path_hash}" '
+      jq -c --arg geometry "${geometry}" '
 
       {
         "format_version": "1.8.0",
         "animations": {
-          ("animation.geyser_custom." + ($path_hash) + ".thirdperson_main_hand"): {
+          ("animation.geyser_custom." + ($geometry) + ".thirdperson_main_hand"): {
             "loop": true,
             "bones": {
               "geyser_custom_x": (if .display.thirdperson_righthand then {
@@ -802,7 +808,7 @@ do
               }
             }
           },
-          ("animation.geyser_custom." + ($path_hash) + ".thirdperson_off_hand"): {
+          ("animation.geyser_custom." + ($geometry) + ".thirdperson_off_hand"): {
             "loop": true,
             "bones": {
               "geyser_custom_x": (if .display.thirdperson_lefthand then {
@@ -822,7 +828,7 @@ do
               }
             }
           },
-          ("animation.geyser_custom." + ($path_hash) + ".head"): {
+          ("animation.geyser_custom." + ($geometry) + ".head"): {
             "loop": true,
             "bones": {
               "geyser_custom_x": {
@@ -841,7 +847,7 @@ do
               }
             }
           },
-          ("animation.geyser_custom." + ($path_hash) + ".firstperson_main_hand"): {
+          ("animation.geyser_custom." + ($geometry) + ".firstperson_main_hand"): {
             "loop": true,
             "bones": {
               "geyser_custom": {
@@ -862,7 +868,7 @@ do
               } else null end)
             }
           },
-          ("animation.geyser_custom." + ($path_hash) + ".firstperson_off_hand"): {
+          ("animation.geyser_custom." + ($geometry) + ".firstperson_off_hand"): {
             "loop": true,
             "bones": {
               "geyser_custom": {
@@ -892,7 +898,7 @@ do
       if [[ ${generated} = false ]]
       then
         mkdir -p ./target/bp/blocks/geyser_custom/${namespace}/${model_path}
-        jq -c -n --arg atlas_index "${atlas_index}" --arg block_material "${block_material}" --arg path_hash "${path_hash}" '
+        jq -c -n --arg atlas_index "${atlas_index}" --arg block_material "${block_material}" --arg path_hash "${path_hash}" --arg geometry "${geometry}" '
         {
             "format_version": "1.16.100",
             "minecraft:block": {
@@ -908,7 +914,7 @@ do
                             "ambient_occlusion": false
                         }
                     },
-                    "minecraft:geometry": ("geometry.geyser_custom." + $path_hash),
+                    "minecraft:geometry": ("geometry.geyser_custom." + $geometry),
                     "minecraft:placement_filter": {
                       "conditions": [
                           {
@@ -941,12 +947,12 @@ do
                 }
             }
         }
-        ' | sponge ./target/bp/items/geyser_custom/${namespace}/${model_path}/${model_name}.json
+        ' | sponge ./target/bp/items/geyser_custom/${namespace}/${model_path}/${model_name}.${path_hash}.json
       fi
 
       # generate our rp attachable definition
       mkdir -p ./target/rp/attachables/geyser_custom/${namespace}/${model_path}
-      jq -c -n --arg generated "${generated}" --arg atlas_index "${atlas_index}" --arg attachable_material "${attachable_material}" --arg v_main "v.main_hand = c.item_slot == 'main_hand';" --arg v_off "v.off_hand = c.item_slot == 'off_hand';" --arg v_head "v.head = c.item_slot == 'head';" --arg path_hash "${path_hash}" --arg namespace "${namespace}" --arg model_path "${model_path}" --arg model_name "${model_name}" '
+      jq -c -n --arg generated "${generated}" --arg atlas_index "${atlas_index}" --arg attachable_material "${attachable_material}" --arg v_main "v.main_hand = c.item_slot == 'main_hand';" --arg v_off "v.off_hand = c.item_slot == 'off_hand';" --arg v_head "v.head = c.item_slot == 'head';" --arg path_hash "${path_hash}" --arg namespace "${namespace}" --arg model_path "${model_path}" --arg model_name "${model_name}" --arg geometry "${geometry}" '
       def tobool: if .=="true" then true elif .=="false" then false else null end;
       {
         "format_version": "1.10.0",
@@ -962,7 +968,7 @@ do
               "enchanted": "textures/misc/enchanted_item_glint"
             },
             "geometry": {
-              "default": ("geometry.geyser_custom." + $path_hash)
+              "default": ("geometry.geyser_custom." + $geometry)
             },
             "scripts": {
               "pre_animation": [$v_main, $v_off, $v_head],
@@ -976,11 +982,11 @@ do
               ]
             },
             "animations": {
-              "thirdperson_main_hand": ("animation.geyser_custom." + $path_hash + ".thirdperson_main_hand"),
-              "thirdperson_off_hand": ("animation.geyser_custom." + $path_hash + ".thirdperson_off_hand"),
-              "thirdperson_head": ("animation.geyser_custom." + $path_hash + ".head"),
-              "firstperson_main_hand": ("animation.geyser_custom." + $path_hash + ".firstperson_main_hand"),
-              "firstperson_off_hand": ("animation.geyser_custom." + $path_hash + ".firstperson_off_hand"),
+              "thirdperson_main_hand": ("animation.geyser_custom." + $geometry + ".thirdperson_main_hand"),
+              "thirdperson_off_hand": ("animation.geyser_custom." + $geometry + ".thirdperson_off_hand"),
+              "thirdperson_head": ("animation.geyser_custom." + $geometry + ".head"),
+              "firstperson_main_hand": ("animation.geyser_custom." + $geometry + ".firstperson_main_hand"),
+              "firstperson_off_hand": ("animation.geyser_custom." + $geometry + ".firstperson_off_hand"),
               "firstperson_head": "animation.geyser_custom.disable"
             },
             "render_controllers": [ "controller.render.item_default" ]
@@ -988,7 +994,7 @@ do
         }
       }
 
-      ' | sponge ./target/rp/attachables/geyser_custom/${namespace}/${model_path}/${model_name}.attachable.json
+      ' | sponge ./target/rp/attachables/geyser_custom/${namespace}/${model_path}/${model_name}.${path_hash}.attachable.json
 
       # progress
       echo >> scratch_files/count.csv
@@ -997,7 +1003,7 @@ do
       echo
    }
    wait_for_jobs
-   convert_model ${file} ${gid} ${generated} ${namespace} ${model_path} ${model_name} ${path_hash} &
+   convert_model ${file} ${gid} ${generated} ${namespace} ${model_path} ${model_name} ${path_hash} ${geometry} &
 
 done < scratch_files/all.csv
 wait # wait for all the jobs to finish
