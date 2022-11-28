@@ -669,14 +669,14 @@ jq -r '.[] | [.path, .geyserID, .generated, .namespace, .model_path, .model_name
 while IFS=, read -r file gid generated namespace model_path model_name path_hash geometry
 do
    convert_model () {
-    local file=${1}
-    local gid=${2}
-    local generated=${3}
-    local namespace=${4}
-    local model_path=${5}
-    local model_name=${6}
-    local path_hash=${7}
-    local geometry=${8}
+    local file="${1}"
+    local gid="${2}"
+    local generated="${3}"
+    local namespace="${4}"
+    local model_path="${5}"
+    local model_name="${6}"
+    local path_hash="${7}"
+    local geometry="${8}"
 
     # find which texture atlas we will be using if not generated
     if [[ ${generated} = "false" ]]
@@ -1003,7 +1003,7 @@ do
       echo
    }
    wait_for_jobs
-   convert_model ${file} ${gid} ${generated} ${namespace} ${model_path} ${model_name} ${path_hash} ${geometry} &
+   convert_model "${file}" "${gid}" "${generated}" "${namespace}" "${model_path}" "${model_name}" "${path_hash}" "${geometry}" &
 
 done < scratch_files/all.csv
 wait # wait for all the jobs to finish
