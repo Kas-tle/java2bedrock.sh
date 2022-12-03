@@ -196,7 +196,7 @@ if contains(":") then sub("\\:(.+)"; "") else "minecraft" end
 ;
 
 [.[] | to_entries | map( select((.value.predicate.damage != null) or (.value.predicate.damaged != null)  or (.value.predicate.custom_model_data != null)) |
-      (if .value.predicate.damage then (.value.predicate.damage * maxdur(.key) | round) else null end) as $damage
+      (if .value.predicate.damage then (.value.predicate.damage * maxdur(.key) | ceil) else null end) as $damage
     | (if .value.predicate.damaged == 0 then true else null end) as $unbreakable
     | (if .value.predicate.custom_model_data then .value.predicate.custom_model_data else null end) as $custom_model_data |
   {
