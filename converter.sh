@@ -1113,8 +1113,13 @@ if [ -f sprites.json ]; then
   | gsub("\\t";",")
   ' sprites.json > scratch_files/sprites.csv
 
+  function write_id_hash () { 
+    local entry_hash=$(echo -n "${1}" | md5sum | head -c 7)
+    echo "${2},${entry_hash}" >> "${4}"
+  }
+ 
   while IFS=, read -r predicate icon
-    do write_hash "${predicate}" "${icon}"  "scratch_files/sprite_hashes.csv" &
+    do write_id_hash "${predicate}" "${icon}"  "scratch_files/sprite_hashes.csv" &
   done < scratch_files/sprites.csv > /dev/null
 
   jq -cR 'split(",")' scratch_files/sprite_hashes.csv | jq -s 'map({("gmdl_" + .[1]): {"textures": .[0]}}) | add' > scratch_files/sprite_hashmap.json
