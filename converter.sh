@@ -1115,7 +1115,7 @@ if [ -f sprites.json ]; then
 
   function write_id_hash () { 
     local entry_hash=$(echo -n "${1}" | md5sum | head -c 7)
-    echo "${2},${entry_hash}" >> "${4}"
+    echo "${2},${entry_hash}" >> "${3}"
   }
  
   while IFS=, read -r predicate icon
