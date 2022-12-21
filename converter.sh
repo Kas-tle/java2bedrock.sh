@@ -152,12 +152,12 @@ then
   exit 1
 fi
 
-# ensure the directories that would contain predicate definitions exist
-if test -d "./assets/minecraft/models/item"; then item_folder="./assets/minecraft/models/item/*.json"; fi
-if test -d "./assets/minecraft/models/block"; then block_folder="./assets/minecraft/models/block/*.json"; fi
-if [[ -z ${item_folder} ]] && [[ -z ${block_folder} ]]
-then
-	status_message error "Invalid resource pack! No item or block folders exist. No predicate definitions be found."
+# ensure the directory that would contain predicate definitions exists
+if test -d "./assets/minecraft/models/item"
+then 
+  status_message completion "Minecraft namespace item folder found."
+else
+  status_message error "Invalid resource pack! No item or block folders exist. No predicate definitions be found."
   exit 1
 fi
 
@@ -218,7 +218,7 @@ if contains(":") then sub("\\:(.+)"; "") else "minecraft" end
 | to_entries | map( ((.value.geyserID = "gmdl_\(1+.key)") | .value))
 | INDEX(.geyserID)
 
-' ${item_folder} ${block_folder} > config.json || { status_message error "Invalid JSON exists in block or item folder! See above log."; exit 1; }
+' "./assets/minecraft/models/item" > config.json || { status_message error "Invalid JSON exists in block or item folder! See above log."; exit 1; }
 status_message completion "Initial predicate config generated"
 
 # get a bash array of all model json files in our resource pack
