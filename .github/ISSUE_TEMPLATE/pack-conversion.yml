@@ -81,6 +81,7 @@ body:
         - entity_alphatest
         - entity_alphablend
         - entity_alphatest_one_sided
+        - entity_emissive_alpha_one_sided
     validations:
       required: false
   - type: dropdown
