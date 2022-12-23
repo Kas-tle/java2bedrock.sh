@@ -33,7 +33,7 @@ jobs:
             "pack_url": .["java-pack-direct-download-url"].text[1:-1],
             "default_pack_url": test_input(.["default-pack-direct-download-url"].text; " null ")[1:-1],
             "merge_pack_url": test_input(.["bedrock-merge-pack-direct-download-url"].text; " null ")[1:-1],
-            "default_assets_version": test_input(.["default-assets-version"].text; "1.19.2"),
+            "default_assets_version": test_input(.["default-assets-version"].text; "1.19.3"),
             "block_material": test_input(.["block-material"].text; "alpha_test"),
             "attachable_material": test_input(.["attachable-material"].text; "entity_alphatest_one_sided"),
             "archive_scratch": test_input(.["archive-scratch-files"].text; "false")
