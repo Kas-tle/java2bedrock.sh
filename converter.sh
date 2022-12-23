@@ -1057,18 +1057,22 @@ if test -f ${merge_input}; then
     }
     ' ./target/rp/textures/item_texture.json ./inputbedrockpack/textures/item_texture.json | sponge ./target/rp/textures/item_texture.json
   fi
+  # merge the languages.json file from the input pack with the one in the target resource pack
   if test -f ./inputbedrockpack/texts/languages.json; then
     status_message process "Merging languages file"
     jq -s '.[0] + .[1] | unique' | sponge ./target/rp/texts/languages.json
   fi
+  # merge the en_US.lang file from the input pack with the one in the target resource pack
   if test -f ./inputbedrockpack/texts/en_US.lang; then
     status_message process "Merging en_US lang file"
     cat ./inputbedrockpack/texts/en_US.lang >> ./target/rp/texts/en_US.lang
   fi
+  # merge the en_GB.lang file from the input pack with the one in the target resource pack
   if test -f ./inputbedrockpack/texts/en_GB.lang; then
     status_message process "Merging en_GB lang file"
     cat ./inputbedrockpack/texts/en_GB.lang >> ./target/rp/texts/en_GB.lang
   fi
+  # delete the input bedrock pack scratch directory
   status_message critical "Deleting input bedrock pack scratch direcotry"
   rm -rf inputbedrockpack
   status_message completion "Input bedrock pack merged with generated assets\n"
@@ -1103,6 +1107,7 @@ jq '
 
 # Add sprites if sprites.json exists in the root pack
 if [ -f sprites.json ]; then
+  # read sprites.json and create a new csv file with entries in the format "predicate,icon"
   status_message process "Adding provided sprite paths from sprites.json"
   jq -r '
   to_entries 
@@ -1112,24 +1117,27 @@ if [ -f sprites.json ]; then
   | @tsv 
   | gsub("\\t";",")
   ' sprites.json > scratch_files/sprites.csv
-
+  # write a function to generate a unique hash for each entry and write it to a csv file
   function write_id_hash () { 
     local entry_hash=$(echo -n "${1}" | md5sum | head -c 7)
     echo "${2},${entry_hash}" >> "${3}"
   }
- 
+
+ # read entries from sprites.csv and write them to sprite_hashes.csv with their corresponding hashes
   while IFS=, read -r predicate icon
     do write_id_hash "${predicate}" "${icon}"  "scratch_files/sprite_hashes.csv" &
   done < scratch_files/sprites.csv > /dev/null
 
+  # create a JSON object that maps each entry's hash to its corresponding icon
   jq -cR 'split(",")' scratch_files/sprite_hashes.csv | jq -s 'map({("gmdl_" + .[1]): {"textures": .[0]}}) | add' > scratch_files/sprite_hashmap.json
+  # merge the sprite hashmap into the item_texture.json file in the resource pack
 
   jq -s '
   .[0] as $icon_sprites
   | .[1] 
   | .texture_data += $icon_sprites
   ' scratch_files/sprite_hashmap.json ./target/rp/textures/item_texture.json | sponge ./target/rp/textures/item_texture.json
-  
+  # merge the sprite hashmap into the geyser_mappings.json file
   jq -s '
   {
   "format_version": "1",
@@ -1151,19 +1159,22 @@ fi
 rm -rf assets && rm -f pack.mcmeta && rm -f pack.png
 if [[ ${save_scratch} != "true" ]] 
 then
+  # delete the scratch files if save_scratch is not set to "true"
   rm -rf scratch_files
   status_message critical "Deleted scratch files"
 else
+  # zip and save the scratch files if save_scratch is set to "true"
   cd ./scratch_files > /dev/null && zip -rq8 scratch_files.zip . -x "*/.*" && cd .. > /dev/null && mv ./scratch_files/scratch_files.zip ./target/scratch_files.zip
   status_message completion "Archived scratch files\n"
 fi
 
-
+# compress the output packs and move them to the packaged director
 status_message process "Compressing output packs"
 mkdir ./target/packaged
 cd ./target/rp > /dev/null && zip -rq8 geyser_resources_preview.mcpack . -x "*/.*" && cd ../.. > /dev/null && mv ./target/rp/geyser_resources_preview.mcpack ./target/packaged/geyser_resources_preview.mcpack
 cd ./target/bp > /dev/null && zip -rq8 geyser_behaviors_preview.mcpack . -x "*/.*" && cd ../.. > /dev/null && mv ./target/bp/geyser_behaviors_preview.mcpack ./target/packaged/geyser_behaviors_preview.mcpack
 cd ./target/packaged > /dev/null && zip -rq8 geyser_addon.mcaddon . -i "*_preview.mcpack" && cd ../.. > /dev/null
+# remove the resource pack and behavior pack directories
 jq 'delpaths([paths | select(.[-1] | strings | startswith("gmdl_atlas_"))])' ./target/rp/textures/terrain_texture.json | sponge ./target/rp/textures/terrain_texture.json
 cd ./target/rp > /dev/null && zip -rq8 geyser_resources.mcpack . -x "*/.*" && cd ../.. > /dev/null && mv ./target/rp/geyser_resources.mcpack ./target/packaged/geyser_resources.mcpack
 mkdir ./target/unpackaged
