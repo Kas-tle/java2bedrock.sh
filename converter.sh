@@ -592,7 +592,7 @@ fi
 # add icon textures to item atlas
 if [[ -f scratch_files/icons.csv ]]
 then
-  jq -cR 'split(",")' scratch_files/icons.csv | jq -s 'map({(.[0]): {"textures": .[1]}}) | add' > scratch_files/icons.json
+  jq -cR 'split(",")' scratch_files/icons.csv | jq -s 'map({(.[0]): {"textures": (.[1] | gsub("//"; "/"))}}) | add' > scratch_files/icons.json
   jq -s '
   .[0] as $icons
   | .[1] 
