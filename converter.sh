@@ -813,7 +813,7 @@ do
             "bones": {
               "geyser_custom_x": (if .display.thirdperson_lefthand then {
                 "rotation": (if .display.thirdperson_lefthand.rotation then [(- .display.thirdperson_lefthand.rotation[0]), 0, 0] else null end),
-                "position": (if .display.thirdperson_lefthand.translation then [(- .display.thirdperson_lefthand.translation[0]), (.display.thirdperson_lefthand.translation[1]), (.display.thirdperson_lefthand.translation[2])] else null end),
+                "position": (if .display.thirdperson_lefthand.translation then [(.display.thirdperson_lefthand.translation[0]), (.display.thirdperson_lefthand.translation[1]), (.display.thirdperson_lefthand.translation[2])] else null end),
                 "scale": (if .display.thirdperson_lefthand.scale then [(.display.thirdperson_lefthand.scale[0]), (.display.thirdperson_lefthand.scale[1]), (.display.thirdperson_lefthand.scale[2])] else null end)
               } else null end),
               "geyser_custom_y": (if .display.thirdperson_lefthand.rotation then {
