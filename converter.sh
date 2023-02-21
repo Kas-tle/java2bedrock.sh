@@ -824,7 +824,7 @@ do
               } else null end),
               "geyser_custom": {
                 "rotation": [90, 0, 0],
-                "position": [-12, 13, -3]
+                "position": [0, 13, -3]
               }
             }
           },
