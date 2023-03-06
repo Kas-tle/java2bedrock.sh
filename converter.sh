@@ -843,7 +843,7 @@ do
                 "rotation": [0, 0, (.display.head.rotation[2])]
               } else null end),
               "geyser_custom": {
-                "position": [0, 19.5, 0]
+                "position": [0, 19.9, 0]
               }
             }
           },
