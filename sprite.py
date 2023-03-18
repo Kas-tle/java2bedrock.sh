@@ -50,4 +50,4 @@ def sprite(glyph):
     
         spritesheet.paste(cut_frame, box)
     
-    spritesheet.save(f"font/glyph_{glyph}.png", "PNG")
+    spritesheet.save(f"staging/target/rp/font/glyph_{glyph}.png", "PNG")
