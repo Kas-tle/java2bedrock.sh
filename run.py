@@ -6,7 +6,7 @@ import glob, os, math, time, shutil, json, re, itertools, time
 blankimg = 'blank256.png'
 lines = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, "a", "b", "c", "d", "e", "f"]
 
-download_url = "https://www.dropbox.com/s/9oaaz839l2r6gsu/Realistic%20Survival%20RP%201.2.5%20DEV-1.zip?dl=1"
+download_url = os.environ.get("PACK_URL")
 dload.save_unzip(download_url, "pack/")
 
 def create_empty(glyph):
