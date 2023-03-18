@@ -67,10 +67,16 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 17
+      - name: Install Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
       - name: Install dependencies
         run: |
           sudo apt-get install -y moreutils zip
           yarn global add spritesheet-js
+          pip install dload
+          pip install Pillow
       - name: Convert Pack
         id: convert-pack
         continue-on-error: false
@@ -93,6 +99,7 @@ jobs:
             COLUMNS=$COLUMNS-1 curl --no-styled-output -#L -o merge_pack.zip "${MERGE_PACK_URL}"
             MERGE_PACK_FILE="merge_pack.zip"
           fi
+          python run.py
           ./converter.sh input_pack.zip -w "false" -m ${MERGE_PACK_FILE} -a ${ATTACHABLE_MATERIAL} -b ${BLOCK_MATERIAL} -f ${DEFAULT_PACK_URL} -v ${DEFAULT_ASSETS_VERSION} -s ${ARCHIVE_SCRATCH} -u "true"
       - name: Upload converted pack
         uses: actions/upload-artifact@v3
