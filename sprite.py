@@ -49,5 +49,8 @@ def sprite(glyph):
         cut_frame = current_frame.crop((0,0,tile_width,tile_height))
     
         spritesheet.paste(cut_frame, box)
-    
+    try:
+        os.makedirs("staging/targrt/rp/font", exist_ok = True)
+    except OSError as error:
+        print("Have Path")
     spritesheet.save(f"staging/target/rp/font/glyph_{glyph}.png", "PNG")
