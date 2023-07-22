@@ -312,7 +312,7 @@ jq --slurpfile hashmap scratch_files/hashmap.json '
 
 # create our initial directories for bp & rp
 status_message process "Generating initial directory strucutre for our bedrock packs"
-mkdir -p ./target/rp/models/blocks/geyser_custom && mkdir -p ./target/rp/textures && mkdir -p ./target/rp/attachables/geyser_custom && mkdir -p ./target/rp/animations/geyser_custom && mkdir -p ./target/bp/blocks/geyser_custom && mkdir -p ./target/bp/items/geyser_custom
+mkdir -p ./target/rp/models/blocks && mkdir -p ./target/rp/textures && mkdir -p ./target/rp/attachables && mkdir -p ./target/rp/animations && mkdir -p ./target/bp/blocks && mkdir -p ./target/bp/items
 
 # copy over our pack.png if we have one
 if test -f "./pack.png"; then
@@ -418,7 +418,7 @@ jq -nc '
     }
   }
 }
-' | sponge ./target/rp/animations/geyser_custom/animation.geyser_custom.disable.json
+' | sponge ./target/rp/animations/animation.geyser_custom.disable.json
 
 # DO DEFAULT ASSETS HERE!!
 # get the current default textures and merge them with our rp
@@ -687,7 +687,7 @@ do
     fi
 
     status_message process "Starting conversion of model with GeyserID ${gid}"
-    mkdir -p ./target/rp/models/blocks/geyser_custom/${namespace}/${model_path}
+    mkdir -p ./target/rp/models/blocks/${namespace}/${model_path}
     jq --slurpfile atlas scratch_files/spritesheet/${atlas_index}.json --arg generated "${generated}" --arg binding "c.item_slot == 'head' ? 'head' : q.item_slot_to_bone_name(c.item_slot)" --arg geometry "${geometry}" -c '
     .textures as $texture_list |
     def namespace: if contains(":") then sub("\\:(.+)"; "") else "minecraft" end;
@@ -779,10 +779,10 @@ do
             }) end] + (pivot_groups | map(del(.cubes[].rotation)) | to_entries | map( (.value.name = "rot_\(1+.key)" ) | .value)))
         }]
       }
-      ' ${file} | sponge ./target/rp/models/blocks/geyser_custom/${namespace}/${model_path}/${model_name}.json
+      ' ${file} | sponge ./target/rp/models/blocks/${namespace}/${model_path}/${model_name}.json
 
       # generate our rp animations via display settings
-      mkdir -p ./target/rp/animations/geyser_custom/${namespace}/${model_path}
+      mkdir -p ./target/rp/animations/${namespace}/${model_path}
       jq -c --arg geometry "${geometry}" '
 
       {
@@ -892,12 +892,12 @@ do
         }
       } | walk( if type == "object" then with_entries(select(.value != null)) else . end)
 
-      ' ${file} | sponge ./target/rp/animations/geyser_custom/${namespace}/${model_path}/animation.${model_name}.json
+      ' ${file} | sponge ./target/rp/animations/${namespace}/${model_path}/animation.${model_name}.json
 
       # generate our bp block definition if this is a 3D item
       if [[ ${generated} = false ]]
       then
-        mkdir -p ./target/bp/blocks/geyser_custom/${namespace}/${model_path}
+        mkdir -p ./target/bp/blocks/${namespace}/${model_path}
         jq -c -n --arg atlas_index "${atlas_index}" --arg block_material "${block_material}" --arg path_hash "${path_hash}" --arg geometry "${geometry}" '
         {
             "format_version": "1.16.100",
@@ -928,10 +928,10 @@ do
                 }
             }
         }
-        ' | sponge ./target/bp/blocks/geyser_custom/${namespace}/${model_path}/${model_name}.json
+        ' | sponge ./target/bp/blocks/${namespace}/${model_path}/${model_name}.json
       # generate our bp item definition if this is a 2D item
       else
-        mkdir -p ./target/bp/items/geyser_custom/${namespace}/${model_path}
+        mkdir -p ./target/bp/items/${namespace}/${model_path}
         jq -c -n --arg path_hash "${path_hash}" '
         {
             "format_version": "1.16.100",
@@ -947,11 +947,11 @@ do
                 }
             }
         }
-        ' | sponge ./target/bp/items/geyser_custom/${namespace}/${model_path}/${model_name}.${path_hash}.json
+        ' | sponge ./target/bp/items/${namespace}/${model_path}/${model_name}.${path_hash}.json
       fi
 
       # generate our rp attachable definition
-      mkdir -p ./target/rp/attachables/geyser_custom/${namespace}/${model_path}
+      mkdir -p ./target/rp/attachables/${namespace}/${model_path}
       jq -c -n --arg generated "${generated}" --arg atlas_index "${atlas_index}" --arg attachable_material "${attachable_material}" --arg v_main "v.main_hand = c.item_slot == 'main_hand';" --arg v_off "v.off_hand = c.item_slot == 'off_hand';" --arg v_head "v.head = c.item_slot == 'head';" --arg path_hash "${path_hash}" --arg namespace "${namespace}" --arg model_path "${model_path}" --arg model_name "${model_name}" --arg geometry "${geometry}" '
       def tobool: if .=="true" then true elif .=="false" then false else null end;
       {
@@ -994,7 +994,7 @@ do
         }
       }
 
-      ' | sponge ./target/rp/attachables/geyser_custom/${namespace}/${model_path}/${model_name}.${path_hash}.attachable.json
+      ' | sponge ./target/rp/attachables/${namespace}/${model_path}/${model_name}.${path_hash}.attachable.json
 
       # progress
       echo >> scratch_files/count.csv
