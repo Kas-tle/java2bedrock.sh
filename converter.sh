@@ -312,7 +312,7 @@ jq --slurpfile hashmap scratch_files/hashmap.json '
 
 # create our initial directories for bp & rp
 status_message process "Generating initial directory strucutre for our bedrock packs"
-mkdir -p ./target/rp/models/blocks/geyser_custom && mkdir -p ./target/rp/textures/geyser/geyser_custom && mkdir -p ./target/rp/attachables/geyser_custom && mkdir -p ./target/rp/animations/geyser_custom && mkdir -p ./target/bp/blocks/geyser_custom && mkdir -p ./target/bp/items/geyser_custom
+mkdir -p ./target/rp/models/blocks/geyser_custom && mkdir -p ./target/rp/textures && mkdir -p ./target/rp/attachables/geyser_custom && mkdir -p ./target/rp/animations/geyser_custom && mkdir -p ./target/bp/blocks/geyser_custom && mkdir -p ./target/bp/items/geyser_custom
 
 # copy over our pack.png if we have one
 if test -f "./pack.png"; then
@@ -550,10 +550,10 @@ do
       } + (if $jdisplay then ({"display": ($jdisplay[])}) else {} end)
       ' | sponge ${file}
       # copy texture directly to the rp
-      mkdir -p "./target/rp/textures/geyser/geyser_custom/${namespace}/${model_path}"
-      cp "${texture_0}" "./target/rp/textures/geyser/geyser_custom/${namespace}/${model_path}/${model_name}.png"
+      mkdir -p "./target/rp/textures/${namespace}/${model_path}"
+      cp "${texture_0}" "./target/rp/textures/${namespace}/${model_path}/${model_name}.png"
       # add texture to item atlas
-      echo "${path_hash},textures/geyser/geyser_custom/${namespace}/${model_path}/${model_name}" >> scratch_files/icons.csv
+      echo "${path_hash},textures/${namespace}/${model_path}/${model_name}" >> scratch_files/icons.csv
       echo "${gid}" >> scratch_files/generated.csv
       echo >> scratch_files/count.csv
       local tot_pos=$(wc -l < scratch_files/count.csv)
@@ -653,7 +653,7 @@ done
 wait # wait for all the jobs to finish
 
 # generate terrain texture atlas
-jq -cR 'split(",")' scratch_files/atlases.csv | jq -s 'map({("gmdl_atlas_" + .[0]): {"textures": ("textures/geyser/geyser_custom/" + .[0])}}) | add' > scratch_files/atlases.json
+jq -cR 'split(",")' scratch_files/atlases.csv | jq -s 'map({("gmdl_atlas_" + .[0]): {"textures": ("textures/" + .[0])}}) | add' > scratch_files/atlases.json
 jq -s '
 .[0] as $atlases
 | .[1] 
@@ -661,7 +661,7 @@ jq -s '
 ' scratch_files/atlases.json ./target/rp/textures/terrain_texture.json | sponge ./target/rp/textures/terrain_texture.json
 
 status_message completion "All sprite sheets generated"
-mv scratch_files/spritesheet/*.png ./target/rp/textures/geyser/geyser_custom
+mv scratch_files/spritesheet/*.png ./target/rp/textures
 
 # begin conversion
 jq -r '.[] | [.path, .geyserID, .generated, .namespace, .model_path, .model_name, .path_hash, .geometry] | @tsv | gsub("\\t";",")' config.json | sponge scratch_files/all.csv
@@ -964,7 +964,7 @@ do
               "enchanted": $attachable_material
             },
             "textures": {
-              "default": (if ($generated | tobool) == true then ("textures/geyser/geyser_custom/" + $namespace + "/" + $model_path + "/" + $model_name) else ("textures/geyser/geyser_custom/" + $atlas_index) end),
+              "default": (if ($generated | tobool) == true then ("textures/" + $namespace + "/" + $model_path + "/" + $model_name) else ("textures/" + $atlas_index) end),
               "enchanted": "textures/misc/enchanted_item_glint"
             },
             "geometry": {
@@ -1027,7 +1027,7 @@ status_message completion "en_US and en_GB lang files written\n"
 
 # Ensure images are in the correct color space
 status_message process "Setting all images to png8"
-find ./target/rp/textures/geyser/geyser_custom -name '*.png' -exec mogrify -define png:format=png8  {} +
+find ./target/rp/textures -name '*.png' -exec mogrify -define png:format=png8  {} +
 status_message completion "All images set to png8"
 
 # attempt to merge with existing pack if input was provided
