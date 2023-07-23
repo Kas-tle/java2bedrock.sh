@@ -1033,27 +1033,28 @@ status_message completion "All images set to png8"
 
 if [[ ${rename_model_files} == "true" ]]
 then
+    status_message process "Consolidating model files"
     function consolidate_files () {
 	## Get a list of all files
-	local list=$(find ${1} -mindepth 2 -type f -print)
+	list=$(find ${1} -mindepth 2 -type f -print)
 	nr=1
 	
 	## Move all files that are unique
 	find ${1} -mindepth 2 -type f -print0 | while IFS= read -r -d '' file; do
 	    mv -n "$file" ${1}/
 	done
-	local list=$(find ${1} -mindepth 2 -type f -print)
+	list=$(find ${1} -mindepth 2 -type f -print)
 	
 	## Checking which files need to be renamed
 	while [[ $list != '' ]] ; do
 	   ##Remaming the un-moved files to unique names and move the renamed files
 	   find ${1} -mindepth 2 -type f -print0 | while IFS= read -r -d '' file; do
-	       local current_file=$(basename "$file")
+	       current_file=$(basename "$file")
 	       mv -n "$file" "./${nr}${current_file}"
 	   done
 	   ## Incrementing counter to prefix to file name
 	   nr=$((nr+1))
-	   local list=$(find ${1} -mindepth 2 -type f -print)
+	   list=$(find ${1} -mindepth 2 -type f -print)
 	done
      }
      consolidate_files './target/rp/animations'
