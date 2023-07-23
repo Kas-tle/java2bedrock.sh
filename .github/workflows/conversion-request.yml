@@ -47,7 +47,7 @@ jobs:
           echo "BLOCK_MATERIAL=$(jq -r '.block_material' inputs.json)" >> $GITHUB_OUTPUT
           echo "ATTACHABLE_MATERIAL=$(jq -r '.attachable_material' inputs.json)" >> $GITHUB_OUTPUT
           echo "ARCHIVE_SCRATCH=$(jq -r '.archive_scratch' inputs.json)" >> $GITHUB_OUTPUT
-          echo "RENAME_MODEL_FILES"=$(jq -r '.rename_model_files' inputs.json)" >> $GITHUB_OUTPUT
+          echo "RENAME_MODEL_FILES=$(jq -r '.rename_model_files' inputs.json)" >> $GITHUB_OUTPUT
   convert-pack:
     runs-on: ubuntu-latest
     needs: get-pack-info
