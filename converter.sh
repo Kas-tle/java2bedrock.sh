@@ -69,7 +69,7 @@ else
 fi
 
 # get user defined start flags
-while getopts w:m:a:b:f:v:s:u: flag "${@:2}"
+while getopts w:m:a:b:f:v:r:s:u: flag "${@:2}"
 do
     case "${flag}" in
         w) warn=${OPTARG};;
