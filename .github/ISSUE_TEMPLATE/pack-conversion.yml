@@ -97,6 +97,15 @@ body:
       options:
         - 'true'
         - 'false'
+  - type: dropdown
+    id: rename-model-files
+    attributes:
+      label: Rename Model Files
+      description: |
+        Should scratch files be renamed to reduce path length? If not selected, this will default to `false`.
+      options:
+        - 'true'
+        - 'false'
   - type: checkboxes
     id: terms
     attributes:
