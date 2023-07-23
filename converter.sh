@@ -78,6 +78,7 @@ do
         b) block_material=${OPTARG};;
         f) fallback_pack=${OPTARG};;
         v) default_asset_version=${OPTARG};;
+	r) rename_model_files=${OPTARG};;
         s) save_scratch=${OPTARG};;
         u) disable_ulimit=${OPTARG};;
     esac
@@ -1029,6 +1030,39 @@ status_message completion "en_US and en_GB lang files written\n"
 status_message process "Setting all images to png8"
 find ./target/rp/textures -name '*.png' -exec mogrify -define png:format=png8  {} +
 status_message completion "All images set to png8"
+
+if [[ ${rename_model_files} == "true" ]]
+then
+    function consolidate_files () {
+	## Get a list of all files
+	local list=$(find ${1} -mindepth 2 -type f -print)
+	nr=1
+	
+	## Move all files that are unique
+	find ${1} -mindepth 2 -type f -print0 | while IFS= read -r -d '' file; do
+	    mv -n "$file" ${1}/
+	done
+	local list=$(find ${1} -mindepth 2 -type f -print)
+	
+	## Checking which files need to be renamed
+	while [[ $list != '' ]] ; do
+	   ##Remaming the un-moved files to unique names and move the renamed files
+	   find ${1} -mindepth 2 -type f -print0 | while IFS= read -r -d '' file; do
+	       local current_file=$(basename "$file")
+	       mv -n "$file" "./${nr}${current_file}"
+	   done
+	   ## Incrementing counter to prefix to file name
+	   nr=$((nr+1))
+	   local list=$(find ${1} -mindepth 2 -type f -print)
+	done
+     }
+     consolidate_files './target/rp/animations'
+     rm -rf ./target/rp/animations/*/
+     consolidate_files './target/rp/models/blocks'
+     rm -rf ./target/rp/models/blocks/*/
+     consolidate_files './target/rp/attachables'
+     rm -rf rm -rf ./target/rp/attachables/*/
+fi
 
 # attempt to merge with existing pack if input was provided
 if test -f ${merge_input}; then
