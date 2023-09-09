@@ -19,7 +19,7 @@ try:
         heights = [d['height'] for d in data['providers']]
         ascents = [d['ascent'] for d in data['providers']]
 except Exception as e:
-    print(e)
+    print(f"Error loading default.json: {e}")
     exit()
 
 def createfolder(glyph):
@@ -120,7 +120,7 @@ def converterpack(glyph):
                         image = imagefont.copy()
                         image.save(f"images/{glyph}/0x{glyph}{symbol}.png", "PNG")
                     except Exception as e:
-                        print(e)
+                        print(f"Error loading image: {e} ({path})")
                         continue
                 else:
                     try:
@@ -128,34 +128,9 @@ def converterpack(glyph):
                         image = imagefont.copy()
                         image.save(f"images/{glyph}/0x{glyph}{symbol}.png", "PNG")
                     except Exception as e: 
-                        print(e)
+                        print(f"Error loading image: {e} ({path})")
                         continue
             else:
                 continue
         else:                
-            files = glob.glob(f"images/{glyph}/*.png")
-            for file in files:
-                image = Image.open(file)
-                sw, sh = image.size
-                maxsw, maxsh = (max(maxsw, sw), max(maxsh, sh))
-            if maxsw == maxsh:
-                size = (int(maxsw + 1), int(maxsw + 1))
-            elif maxsw > maxsh:
-                size = (int(maxsw + 1), int(maxsw + 1))
-            elif maxsh > maxsw:
-                size = (int(maxsh + 1), int(maxsh + 1))
-            if size == (0, 0):
-                pass
-            else:
-                glyphsize = size * 16
-                img = Image.open("blank256.png")
-                imgre = img.resize(size)
-                imgre.save("blankimg.png")
-                blankimg = "blankimg.png"
-                create_empty(glyph, blankimg) 
-                imagetoexport(glyph, blankimg)
-                sprite(glyph, glyphsize, size)
-                listglyphdone.append(glyph)
-            
-for glyph in glyphs:
-    converterpack(glyph)
+            files = glob.glob(f"images/{glyph}
