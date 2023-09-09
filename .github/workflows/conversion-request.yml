@@ -78,6 +78,8 @@ jobs:
         run: |
           sudo apt-get install -y moreutils zip
           yarn global add spritesheet-js
+          pip install Pillow
+          pip install requests
       - name: Convert Pack
         id: convert-pack
         continue-on-error: false
@@ -93,6 +95,7 @@ jobs:
         run: |
           mkdir -p staging
           cp converter.sh staging/
+          python run.py
           cd staging
           chmod +x converter.sh
           COLUMNS=$COLUMNS-1 curl --no-styled-output -#L -o input_pack.zip "${PACK_URL}"
