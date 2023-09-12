@@ -1,5 +1,6 @@
 target/
 *.zip
+*.rar
 config.json
 test_config.json
 hashmap.json
