@@ -1,18 +1,23 @@
 from PIL import Image
-from sprite import sprite
+from sprite import sprite  # Import hàm sprite từ một thư viện được cài đặt trước đó
 from io import BytesIO
 from zipfile import ZipFile
 import glob, os, json, requests
 
+# Danh sách các ký tự và số hexadecimal
 lines = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, "a", "b", "c", "d", "e", "f"]
 
+# Hàm để tải xuống và giải nén pack từ URL
 def downloadpack(url):
     req = requests.get(url)
     zipfile = ZipFile(BytesIO(req.content))
     zipfile.extractall('pack/')
+
+# Tải xuống pack từ một URL cụ thể
 downloadpack(os.environ.get("PACK_URL"))
 
 try:
+    # Đọc thông tin font từ default.json
     with open("pack/assets/minecraft/font/default.json", "r") as f:
         data = json.load(f)
         symbols = [d['chars'] for d in data['providers']]
@@ -23,11 +28,13 @@ except Exception as e:
     print(f"Error loading default.json: {e}")
     exit()
 
+# Hàm tạo các thư mục cần thiết cho glyph
 def createfolder(glyph):
     os.makedirs(f"images/{glyph}", exist_ok=True)
     os.makedirs(f"export/{glyph}", exist_ok=True)
     os.makedirs(f"font/", exist_ok=True)
     
+# Hàm tạo ảnh trống cho các ký tự chưa có
 def create_empty(glyph, blankimg):
     for line in lines:
         for linee in lines:
@@ -48,6 +55,7 @@ def create_empty(glyph, blankimg):
             image = imagesus.copy()
             image.save(f"images/{glyph}/0x{glyph}{name}.png", "PNG")
 
+# Hàm chuyển đổi và lưu ảnh vào thư mục export
 def imagetoexport(glyph, blankimg):
     filelist = [file for file in os.listdir(f'images/{glyph}') if file.endswith('.png')]
     for img in filelist:
@@ -79,6 +87,7 @@ def imagetoexport(glyph, blankimg):
             image_copy.paste(logo, position)
             image_copy.save(f"export/{glyph}/{img}")
 
+# Danh sách các glyph duy nhất
 glyphs = []
 for i in symbols:
     if i not in glyphs:
@@ -90,8 +99,10 @@ for i in symbols:
 glyphs = list(dict.fromkeys(glyphs))
 print(glyphs)
 
+# Danh sách các glyph đã được xử lý
 listglyphdone = []
-    
+
+# Hàm chuyển đổi pack thành ảnh
 def converterpack(glyph):
     createfolder(glyph)
     if len(symbols) == len(paths):
@@ -158,5 +169,6 @@ def converterpack(glyph):
                 sprite(glyph, glyphsize, size)
                 listglyphdone.append(glyph)
 
+# Chuyển đổi pack thành ảnh cho từng glyph
 for glyph in glyphs:
     converterpack(glyph)
