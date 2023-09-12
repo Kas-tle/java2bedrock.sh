@@ -11,6 +11,7 @@ def downloadpack(url):
     zipfile = ZipFile(BytesIO(req.content))
     zipfile.extractall('pack/')
 downloadpack(os.environ.get("PACK_URL"))
+
 try:
     with open("pack/assets/minecraft/font/default.json", "r") as f:
         data = json.load(f)
@@ -23,9 +24,9 @@ except Exception as e:
     exit()
 
 def createfolder(glyph):
-    os.makedirs(f"images/{glyph}", exist_ok = True)
-    os.makedirs(f"export/{glyph}", exist_ok = True)
-    os.makedirs(f"font/", exist_ok = True)
+    os.makedirs(f"images/{glyph}", exist_ok=True)
+    os.makedirs(f"export/{glyph}", exist_ok=True)
+    os.makedirs(f"font/", exist_ok=True)
     
 def create_empty(glyph, blankimg):
     for line in lines:
@@ -68,7 +69,7 @@ def imagetoexport(glyph, blankimg):
             if name == imgname:
                 if height >= 1 and height < w and height < h:
                     size = (height, height)
-                    logo.thumbnail(size,Image.ANTIALIAS)                 
+                    logo.thumbnail(size, Image.ANTIALIAS)                 
         if wl > (w/2) and hl > (h/2):
             position = (0, 0)
             image_copy.paste(logo, position)
@@ -78,7 +79,6 @@ def imagetoexport(glyph, blankimg):
             image_copy.paste(logo, position)
             image_copy.save(f"export/{glyph}/{img}")
 
-            
 glyphs = []
 for i in symbols:
     if i not in glyphs:
@@ -100,7 +100,7 @@ def converterpack(glyph):
             symbolbe = ''.join(symboll)
             symbolbehex = (hex(ord(symbolbe)))
             if glyph in listglyphdone:
-                return False
+                continue  # Bỏ qua nếu đã xử lý glyph này
             if len(symbolbehex) == 6:
                 symbol = symbolbehex[4:]
                 symbolac = symbolbehex[2:]
@@ -132,5 +132,31 @@ def converterpack(glyph):
                         continue
             else:
                 continue
-        else:                
-            files = glob.glob(f"images/{glyph}
+        else:
+            # Tìm kích thước lớn nhất của glyph đã tạo
+            files = glob.glob(f"images/{glyph}/*.png")
+            for file in files:
+                image = Image.open(file)
+                sw, sh = image.size
+                maxsw, maxsh = (max(maxsw, sw), max(maxsh, sh))
+            if maxsw == maxsh:
+                size = (int(maxsw + 1), int(maxsw + 1))
+            elif maxsw > maxsh:
+                size = (int(maxsw + 1), int(maxsw + 1))
+            elif maxsh > maxsw:
+                size = (int(maxsh + 1), int(maxsh + 1))
+            if size == (0, 0):
+                pass
+            else:
+                glyphsize = size * 16
+                img = Image.open("blank256.png")
+                imgre = img.resize(size)
+                imgre.save("blankimg.png")
+                blankimg = "blankimg.png"
+                create_empty(glyph, blankimg) 
+                imagetoexport(glyph, blankimg)
+                sprite(glyph, glyphsize, size)
+                listglyphdone.append(glyph)
+
+for glyph in glyphs:
+    converterpack(glyph)
