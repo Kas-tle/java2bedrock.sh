@@ -1193,6 +1193,10 @@ else
   status_message completion "Archived scratch files\n"
 fi
 
+cd -
+python font.py
+python armor.py
+cd ./staging
 
 status_message process "Compressing output packs"
 mkdir ./target/packaged
