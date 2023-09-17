@@ -1,17 +1,24 @@
+# Import các thư viện và module cần thiết
 from PIL import Image
-from font_sprite import sprite
+from font_sprite import sprite  # Đảm bảo có module font_sprite, không có trong đoạn mã cung cấp
 from io import BytesIO
 from zipfile import ZipFile
 import glob, os, json, requests
 
+# Các ký tự và số được sử dụng trong font
 lines = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, "a", "b", "c", "d", "e", "f"]
 
+# Hàm để tải xuống và giải nén pack từ URL
 def downloadpack(url):
     req = requests.get(url)
     zipfile = ZipFile(BytesIO(req.content))
     zipfile.extractall('pack/')
+
+# Thực hiện việc tải pack từ URL được cung cấp qua biến môi trường PACK_URL
 downloadpack(os.environ.get("PACK_URL"))
+
 try:
+    # Đọc thông tin về font từ tệp JSON
     with open("pack/assets/minecraft/font/default.json", "r") as f:
         data = json.load(f)
         symbols = [d['chars'] for d in data['providers']]
@@ -22,11 +29,13 @@ except Exception as e:
     print(e)
     exit()
 
+# Hàm để tạo thư mục cho các glyph
 def createfolder(glyph):
-    os.makedirs(f"images/{glyph}", exist_ok = True)
-    os.makedirs(f"export/{glyph}", exist_ok = True)
-    os.makedirs(f"font/", exist_ok = True)
-    
+    os.makedirs(f"images/{glyph}", exist_ok=True)
+    os.makedirs(f"export/{glyph}", exist_ok=True)
+    os.makedirs(f"font/", exist_ok=True)
+
+# Hàm để tạo các hình ảnh rỗng cho các glyph chưa tồn tại
 def create_empty(glyph, blankimg):
     for line in lines:
         for linee in lines:
@@ -47,6 +56,7 @@ def create_empty(glyph, blankimg):
             image = imagesus.copy()
             image.save(f"images/{glyph}/0x{glyph}{name}.png", "PNG")
 
+# Hàm để chuyển hình ảnh từ thư mục hình ảnh sang thư mục xuất khẩu
 def imagetoexport(glyph, blankimg):
     filelist = [file for file in os.listdir(f'images/{glyph}') if file.endswith('.png')]
     for img in filelist:
@@ -68,7 +78,7 @@ def imagetoexport(glyph, blankimg):
             if name == imgname:
                 if height >= 1 and height < w and height < h:
                     size = (height, height)
-                    logo.thumbnail(size,Image.ANTIALIAS)                 
+                    logo.thumbnail(size, Image.ANTIALIAS)
         if wl > (w/2) and hl > (h/2):
             position = (0, 0)
             image_copy.paste(logo, position)
@@ -78,7 +88,7 @@ def imagetoexport(glyph, blankimg):
             image_copy.paste(logo, position)
             image_copy.save(f"export/{glyph}/{img}")
 
-            
+# Danh sách các glyphs
 glyphs = []
 for i in symbols:
     if i not in glyphs:
@@ -94,8 +104,10 @@ for i in symbols:
 glyphs = list(dict.fromkeys(glyphs))
 print(glyphs)
 
+# Danh sách các glyphs đã được xử lý
 listglyphdone = []
-    
+
+# Hàm để chuyển đổi pack cho từng glyph
 def converterpack(glyph):
     createfolder(glyph)
     if len(symbols) == len(paths):
@@ -131,12 +143,12 @@ def converterpack(glyph):
                         imagefont = Image.open(f"pack/assets/minecraft/textures/{path}")
                         image = imagefont.copy()
                         image.save(f"images/{glyph}/0x{glyph}{symbol}.png", "PNG")
-                    except Exception as e: 
+                    except Exception as e:
                         print(e)
                         continue
             else:
                 continue
-        else:                
+        else:
             files = glob.glob(f"images/{glyph}/*.png")
             for file in files:
                 image = Image.open(file)
@@ -156,10 +168,11 @@ def converterpack(glyph):
                 imgre = img.resize(size)
                 imgre.save("blankimg.png")
                 blankimg = "blankimg.png"
-                create_empty(glyph, blankimg) 
+                create_empty(glyph, blankimg)
                 imagetoexport(glyph, blankimg)
                 sprite(glyph, glyphsize, size)
                 listglyphdone.append(glyph)
-            
+
+# Gọi hàm converterpack cho từng glyph
 for glyph in glyphs:
     converterpack(glyph)
