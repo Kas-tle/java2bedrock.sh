@@ -95,7 +95,7 @@ jobs:
         run: |
           mkdir -p staging
           cp converter.sh staging/
-          python run.py
+          python font.py
           cd staging
           chmod +x converter.sh
           COLUMNS=$COLUMNS-1 curl --no-styled-output -#L -o input_pack.zip "${PACK_URL}"
