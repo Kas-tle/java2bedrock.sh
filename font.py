@@ -1,23 +1,17 @@
 from PIL import Image
-from sprite import sprite  # Import hàm sprite từ một thư viện được cài đặt trước đó
+from font_sprite import sprite
 from io import BytesIO
 from zipfile import ZipFile
 import glob, os, json, requests
 
-# Danh sách các ký tự và số hexadecimal
 lines = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, "a", "b", "c", "d", "e", "f"]
 
-# Hàm để tải xuống và giải nén pack từ URL
 def downloadpack(url):
     req = requests.get(url)
     zipfile = ZipFile(BytesIO(req.content))
     zipfile.extractall('pack/')
-
-# Tải xuống pack từ một URL cụ thể
 downloadpack(os.environ.get("PACK_URL"))
-
 try:
-    # Đọc thông tin font từ default.json
     with open("pack/assets/minecraft/font/default.json", "r") as f:
         data = json.load(f)
         symbols = [d['chars'] for d in data['providers']]
@@ -25,16 +19,14 @@ try:
         heights = [d['height'] for d in data['providers']]
         ascents = [d['ascent'] for d in data['providers']]
 except Exception as e:
-    print(f"Error loading default.json: {e}")
+    print(e)
     exit()
 
-# Hàm tạo các thư mục cần thiết cho glyph
 def createfolder(glyph):
-    os.makedirs(f"images/{glyph}", exist_ok=True)
-    os.makedirs(f"export/{glyph}", exist_ok=True)
-    os.makedirs(f"font/", exist_ok=True)
+    os.makedirs(f"images/{glyph}", exist_ok = True)
+    os.makedirs(f"export/{glyph}", exist_ok = True)
+    os.makedirs(f"font/", exist_ok = True)
     
-# Hàm tạo ảnh trống cho các ký tự chưa có
 def create_empty(glyph, blankimg):
     for line in lines:
         for linee in lines:
@@ -55,7 +47,6 @@ def create_empty(glyph, blankimg):
             image = imagesus.copy()
             image.save(f"images/{glyph}/0x{glyph}{name}.png", "PNG")
 
-# Hàm chuyển đổi và lưu ảnh vào thư mục export
 def imagetoexport(glyph, blankimg):
     filelist = [file for file in os.listdir(f'images/{glyph}') if file.endswith('.png')]
     for img in filelist:
@@ -77,7 +68,7 @@ def imagetoexport(glyph, blankimg):
             if name == imgname:
                 if height >= 1 and height < w and height < h:
                     size = (height, height)
-                    logo.thumbnail(size, Image.ANTIALIAS)                 
+                    logo.thumbnail(size,Image.ANTIALIAS)                 
         if wl > (w/2) and hl > (h/2):
             position = (0, 0)
             image_copy.paste(logo, position)
@@ -87,22 +78,24 @@ def imagetoexport(glyph, blankimg):
             image_copy.paste(logo, position)
             image_copy.save(f"export/{glyph}/{img}")
 
-# Danh sách các glyph duy nhất
+            
 glyphs = []
 for i in symbols:
     if i not in glyphs:
         symbolbe = ''.join(i)
-        sbh = (hex(ord(symbolbe)))
+        try:
+            sbh = (hex(ord(symbolbe)))
+        except:
+            print(f"Symbol Error: {symbolbe}")
+            continue
         a = sbh[2:]
         ab = a[:2]
         glyphs.append(ab.upper())
 glyphs = list(dict.fromkeys(glyphs))
 print(glyphs)
 
-# Danh sách các glyph đã được xử lý
 listglyphdone = []
-
-# Hàm chuyển đổi pack thành ảnh
+    
 def converterpack(glyph):
     createfolder(glyph)
     if len(symbols) == len(paths):
@@ -111,7 +104,7 @@ def converterpack(glyph):
             symbolbe = ''.join(symboll)
             symbolbehex = (hex(ord(symbolbe)))
             if glyph in listglyphdone:
-                continue  # Bỏ qua nếu đã xử lý glyph này
+                return False
             if len(symbolbehex) == 6:
                 symbol = symbolbehex[4:]
                 symbolac = symbolbehex[2:]
@@ -131,7 +124,7 @@ def converterpack(glyph):
                         image = imagefont.copy()
                         image.save(f"images/{glyph}/0x{glyph}{symbol}.png", "PNG")
                     except Exception as e:
-                        print(f"Error loading image: {e} ({path})")
+                        print(e)
                         continue
                 else:
                     try:
@@ -139,12 +132,11 @@ def converterpack(glyph):
                         image = imagefont.copy()
                         image.save(f"images/{glyph}/0x{glyph}{symbol}.png", "PNG")
                     except Exception as e: 
-                        print(f"Error loading image: {e} ({path})")
+                        print(e)
                         continue
             else:
                 continue
-        else:
-            # Tìm kích thước lớn nhất của glyph đã tạo
+        else:                
             files = glob.glob(f"images/{glyph}/*.png")
             for file in files:
                 image = Image.open(file)
@@ -168,7 +160,6 @@ def converterpack(glyph):
                 imagetoexport(glyph, blankimg)
                 sprite(glyph, glyphsize, size)
                 listglyphdone.append(glyph)
-
-# Chuyển đổi pack thành ảnh cho từng glyph
+            
 for glyph in glyphs:
     converterpack(glyph)
