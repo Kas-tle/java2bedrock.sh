@@ -55,7 +55,7 @@ body:
     id: block-material
     attributes:
       label: Block Material
-      description: | 
+      description: |
         Please provide a block material to be used in the script. If one is not selected, `alpha_test` will be used. 
         See the [Bedrock Wiki](https://wiki.bedrock.dev/blocks/block-materials.html) for more info.
           - `opaque`: no support for transparent or translucent pixels and renders only on outside faces
@@ -73,7 +73,7 @@ body:
     id: attachable-material
     attributes:
       label: Attachable Material
-      description: | 
+      description: |
         Please provide an attachable material to be used in the script. If one is not selected, `entity_alphatest_one_sided` will be used. 
         See the [Bedrock Wiki](https://wiki.bedrock.dev/documentation/materials.html) for more info.
           - `entity`: basic opaque material with no support for transparent or translucent pixels
