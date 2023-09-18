@@ -8,7 +8,7 @@ jobs:
   get-pack-info:
     runs-on: ubuntu-latest
     if: github.event.label.name == 'conversion'
-    permissions: 
+    permissions:
       issues: read
     timeout-minutes: 2
     outputs:
@@ -51,7 +51,7 @@ jobs:
   convert-pack:
     runs-on: ubuntu-latest
     needs: get-pack-info
-    permissions: 
+    permissions:
       contents: read
     timeout-minutes: 90
     outputs:
@@ -73,18 +73,17 @@ jobs:
       - name: Install Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11.5'
+          python-version: '3.11'
       - name: Install dependencies
         run: |
           sudo apt-get install -y moreutils zip
           yarn global add spritesheet-js
           pip install Pillow
           pip install requests
-          pip install jproperties
       - name: Convert Pack
         id: convert-pack
         continue-on-error: false
-        env: 
+        env:
           PACK_URL: ${{ needs.get-pack-info.outputs.pack_url }}
           DEFAULT_PACK_URL: ${{ needs.get-pack-info.outputs.default_pack_url }}
           MERGE_PACK_URL: ${{ needs.get-pack-info.outputs.merge_pack_url }}
@@ -96,6 +95,7 @@ jobs:
         run: |
           mkdir -p staging
           cp converter.sh staging/
+          python run.py
           cd staging
           chmod +x converter.sh
           COLUMNS=$COLUMNS-1 curl --no-styled-output -#L -o input_pack.zip "${PACK_URL}"
@@ -119,7 +119,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: convert-pack
     timeout-minutes: 2
-    permissions: 
+    permissions:
       issues: write
     steps:
       - name: Post Result
@@ -135,7 +135,7 @@ jobs:
 
             If you notice issues with the converted files, please refer to the action log for errors and open a bug report if you believe there is an issue with the converter. This issue will be closed automatically.
 
-            [1]: https://github.com/Kas-tle/java2bedrock.sh/actions/runs/${{ github.run_id}}
+            [1]: https://github.com/Hahaa13/java2bedrock.sh/actions/runs/${{ github.run_id}}
           reactions: 'rocket'
       - name: Close Issue
         uses: peter-evans/close-issue@v2
@@ -146,7 +146,7 @@ jobs:
     needs: [get-pack-info, convert-pack, post-result]
     if: always() && (needs.get-pack-info.result == 'failure' || needs.convert-pack.result == 'failure' || needs.convert-pack.result == 'post-result')
     timeout-minutes: 2
-    permissions: 
+    permissions:
       issues: write
     steps:
       - name: Post Result
@@ -164,7 +164,7 @@ jobs:
 
             If you believe this is an issue with the converter. please open a bug report. This issue will be closed automatically.
 
-            [1]: https://github.com/Kas-tle/java2bedrock.sh/actions/runs/${{ github.run_id}}
+            [1]: https://github.com/Hahaa13/java2bedrock.sh/actions/runs/${{ github.run_id}}
           reactions: 'x'
       - name: Close Issue
         uses: peter-evans/close-issue@v2
