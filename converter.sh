@@ -1195,7 +1195,6 @@ fi
 
 cd -
 python font.py
-python armor.py
 cd ./staging
 
 status_message process "Compressing output packs"
