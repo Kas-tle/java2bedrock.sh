@@ -84,6 +84,11 @@ for i in symbols:
     if i not in glyphs:
         symbolbe = ''.join(i)
         sbh = (hex(ord(symbolbe)))
+        try:
+            sbh = (hex(ord(symbolbe)))
+        except:
+            print(f"Symbol Error: {symbolbe}")
+            continue
         a = sbh[2:]
         ab = a[:2]
         glyphs.append(ab.upper())
