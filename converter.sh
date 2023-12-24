@@ -296,7 +296,7 @@ function write_hash () {
 }
 
 while IFS=, read -r gid predicate path
-    do write_hash "${predicate}" "${path}" "${gid}" "scratch_files/hashes.csv" &
+    do write_hash "${predicate}" "${path}" "${gid}" "scratch_files/hashes.csv"
 done < scratch_files/paths.csv > /dev/null
 
 jq -cR 'split(",")' scratch_files/hashes.csv | jq -s 'map({(.[0]): [.[1], .[2]]}) | add' > scratch_files/hashmap.json
