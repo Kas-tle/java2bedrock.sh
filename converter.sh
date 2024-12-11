@@ -119,7 +119,7 @@ read -p $'\e[37mTo acknowledge and continue, press enter. To exit, press Ctrl+C.
 fi
 
 # ensure we have all the required dependencies
-dependency_check "jq-1.6" "https://stedolan.github.io/jq/download/" "jq --version" "1.6"
+dependency_check "jq" "https://stedolan.github.io/jq/download/" "jq --version" "1.6\|1.7"
 dependency_check "sponge" "https://joeyh.name/code/moreutils/" "-v sponge" ""
 dependency_check "imagemagick" "https://imagemagick.org/script/download.php" "convert --version" ""
 dependency_check "spritesheet-js" "https://www.npmjs.com/package/spritesheet-js" "-v spritesheet-js" ""
