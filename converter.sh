@@ -1154,7 +1154,7 @@ if [ -f sprites.json ]; then
   }
  
   while IFS=, read -r predicate icon
-    do write_id_hash "${predicate}" "${icon}"  "scratch_files/sprite_hashes.csv" &
+    do write_id_hash "${predicate}" "${icon}"  "scratch_files/sprite_hashes.csv"
   done < scratch_files/sprites.csv > /dev/null
 
   jq -cR 'split(",")' scratch_files/sprite_hashes.csv | jq -s 'map({("gmdl_" + .[1]): {"textures": .[0]}}) | add' > scratch_files/sprite_hashmap.json
