@@ -571,7 +571,7 @@ do
     rm -f scratch_files/${gid}.elements.temp scratch_files/${gid}.textures.temp scratch_files/${gid}.display.temp
   }
   wait_for_jobs
-  resolve_parental "${file}" "${gid}" "${parental}" "${namespace}" "${model_path}" "${model_name}" "${path_hash}" &
+  resolve_parental "${file}" "${gid}" "${parental}" "${namespace}" "${model_path}" "${model_name}" "${path_hash}"
 
 done < scratch_files/pa.csv
 wait # wait for all the jobs to finish
@@ -649,7 +649,7 @@ do
     echo ${1} >> scratch_files/atlases.csv
   }
   wait_for_jobs
-  generate_atlas "${i}" &
+  generate_atlas "${i}"
 done
 wait # wait for all the jobs to finish
 
@@ -1004,7 +1004,7 @@ do
       echo
    }
    wait_for_jobs
-   convert_model "${file}" "${gid}" "${generated}" "${namespace}" "${model_path}" "${model_name}" "${path_hash}" "${geometry}" &
+   convert_model "${file}" "${gid}" "${generated}" "${namespace}" "${model_path}" "${model_name}" "${path_hash}" "${geometry}"
 
 done < scratch_files/all.csv
 wait # wait for all the jobs to finish
