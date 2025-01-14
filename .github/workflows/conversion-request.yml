@@ -72,7 +72,7 @@ jobs:
           node-version: 17
       - name: Install dependencies
         run: |
-          sudo apt-get install -y moreutils zip
+          sudo apt-get install -y moreutils zip imagemagick
           yarn global add spritesheet-js
       - name: Convert Pack
         id: convert-pack
