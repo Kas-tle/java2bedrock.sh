@@ -1,0 +1,89 @@
+name: Java to Bedrock Converter
+
+on:
+  workflow_dispatch:
+    inputs:
+      resource_pack_url:
+        description: 'URL ของ Resource Pack ที่ต้องการแปลง'
+        required: true
+        type: string
+      merge_pack:
+        description: 'Bedrock pack ที่มีอยู่เพื่อ merge (ถ้ามี)'
+        required: false
+        default: 'null'
+        type: string
+      attachable_material:
+        description: 'Material สำหรับ attachables'
+        required: false
+        default: 'entity_alphatest_one_sided'
+        type: string
+      block_material:
+        description: 'Material สำหรับ blocks'
+        required: false
+        default: 'alpha_test'
+        type: string
+      fallback_pack_url:
+        description: 'URL สำหรับ fallback resource pack'
+        required: false
+        default: 'null'
+        type: string
+
+  repository_dispatch:
+    types: [run-converter]
+
+jobs:
+  convert:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq moreutils imagemagick curl unzip
+          sudo npm install -g spritesheet-js
+
+      - name: Download Resource Pack
+        run: |
+          if [ "${{ github.event.inputs.resource_pack_url }}" != "" ]; then
+            curl -L -o input_pack.zip "${{ github.event.inputs.resource_pack_url }}"
+          elif [ "${{ github.event.client_payload.input_pack_url }}" != "" ]; then
+            curl -L -o input_pack.zip "${{ github.event.client_payload.input_pack_url }}"
+          else
+            echo "No input pack URL provided"
+            exit 1
+          fi
+
+      - name: Run Converter Script
+        run: |
+          chmod +x converter.sh
+
+          MERGE_INPUT="${{ github.event.inputs.merge_pack || github.event.client_payload.merge_pack || 'null' }}"
+          ATTACHABLE_MAT="${{ github.event.inputs.attachable_material || github.event.client_payload.attachable_material || 'entity_alphatest_one_sided' }}"
+          BLOCK_MAT="${{ github.event.inputs.block_material || github.event.client_payload.block_material || 'alpha_test' }}"
+          FALLBACK_URL="${{ github.event.inputs.fallback_pack_url || github.event.client_payload.fallback_pack_url || 'null' }}"
+
+          ./converter.sh input_pack.zip \
+            -m "$MERGE_INPUT" \
+            -a "$ATTACHABLE_MAT" \
+            -b "$BLOCK_MAT" \
+            -f "$FALLBACK_URL"
+
+      - name: Upload Converted Packs
+        uses: actions/upload-artifact@v4
+        with:
+          name: converted-packs
+          path: |
+            target/packaged/*.mcpack
+            target/packaged/*.mcaddon
+            target/geyser_mappings.json
+          retention-days: 7
+
+      - name: Upload Unpackaged Files
+        uses: actions/upload-artifact@v4
+        with:
+          name: unpackaged-files
+          path: target/unpackaged/
+          retention-days: 7
