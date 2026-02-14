@@ -18,7 +18,7 @@ To run without settings prompts, use flags:
 For example:
 
 ```
-./converter.sh MyResourcePack.zip -w "false" -m "MyBedrock.mcpack" -a "entity_alphatest_one_sided" -b "alpha_test" -f "null" -v "1.18.2"
+./converter.sh MyResourcePack.zip -w "false" -m "MyBedrock.mcpack" -a "entity_alphatest_one_sided" -b "alpha_test" -f "null" -v "1.21.10"
 ```
 
 ### Item Icons

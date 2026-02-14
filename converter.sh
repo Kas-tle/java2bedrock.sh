@@ -428,7 +428,7 @@ then
   status_message process "Now downloading the fallback resource pack:"
   printf "\e[3m\e[37m"
   echo
-  COLUMNS=$COLUMNS-1 curl --no-styled-output -#L -o default_assets.zip https://github.com/InventivetalentDev/minecraft-assets/zipball/refs/tags/${default_asset_version:=1.19.2}
+  COLUMNS=$COLUMNS-1 curl --no-styled-output -#L -o default_assets.zip https://github.com/InventivetalentDev/minecraft-assets/zipball/refs/tags/${default_asset_version:=1.21.10}
   echo
   printf "${C_CLOSE}"
   status_message completion "Fallback resources downloaded"
