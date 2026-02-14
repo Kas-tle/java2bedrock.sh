@@ -339,7 +339,7 @@ jq -c --arg pack_desc "${pack_desc}" --arg uuid1 "${uuid1}" --arg uuid2 "${uuid2
         "name": $pack_desc,
         "uuid": ($uuid1 | ascii_downcase),
         "version": [1, 0, 0],
-        "min_engine_version": [1, 18, 3]
+        "min_engine_version": [1, 26, 0]
     },
     "modules": [
         {
@@ -362,7 +362,7 @@ jq -c --arg pack_desc "${pack_desc}" --arg uuid1 "${uuid1}" --arg uuid3 "${uuid3
         "name": $pack_desc,
         "uuid": ($uuid3 | ascii_downcase),
         "version": [1, 0, 0],
-        "min_engine_version": [ 1, 18, 3]
+        "min_engine_version": [ 1, 26, 0]
     },
     "modules": [
         {
@@ -428,7 +428,7 @@ then
   status_message process "Now downloading the fallback resource pack:"
   printf "\e[3m\e[37m"
   echo
-  COLUMNS=$COLUMNS-1 curl --no-styled-output -#L -o default_assets.zip https://github.com/InventivetalentDev/minecraft-assets/zipball/refs/tags/${default_asset_version:=1.19.2}
+  COLUMNS=$COLUMNS-1 curl --no-styled-output -#L -o default_assets.zip https://github.com/InventivetalentDev/minecraft-assets/zipball/refs/tags/${default_asset_version:=1.21.10}
   echo
   printf "${C_CLOSE}"
   status_message completion "Fallback resources downloaded"
