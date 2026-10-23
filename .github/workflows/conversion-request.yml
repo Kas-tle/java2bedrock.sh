@@ -73,13 +73,21 @@ jobs:
           node-version: 17
       - name: Fix APT sources and update
         run: |
-          sudo sed -i 's|mirror+file:/etc/apt/apt-mirrors.txt|http://archive.ubuntu.com/ubuntu|' /etc/apt/sources.list
-          sudo apt-get clean
+          if [ -f /etc/apt/sources.list ]; then
+            sudo sed -i 's|mirror+file:/etc/apt/apt-mirrors.txt|http://archive.ubuntu.com/ubuntu|' /etc/apt/sources.list || true
+          fi
+          sudo apt-get clean || true
           sudo apt-get update
       - name: Install dependencies
         run: |
-          sudo apt-get install -y --fix-missing moreutils zip imagemagick ghostscript
+          sudo apt-get install -y --fix-missing jq moreutils zip unzip imagemagick ghostscript
+          if ! command -v jq >/dev/null 2>&1; then
+            sudo curl -sL -o /usr/local/bin/jq https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux-amd64
+            sudo chmod +x /usr/local/bin/jq
+          fi
           yarn global add spritesheet-js
+          echo "$(yarn global bin)" >> $GITHUB_PATH
+          jq --version
       - name: Convert Pack
         id: convert-pack
         continue-on-error: false
