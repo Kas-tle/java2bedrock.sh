@@ -128,7 +128,7 @@ jobs:
     steps:
       - name: Post Result
         id: post-result
-        uses: peter-evans/create-or-update-comment@v2
+        uses: peter-evans/create-or-update-comment@v4
         with:
           issue-number: ${{ github.event.issue.number }}
           body: |
@@ -142,7 +142,7 @@ jobs:
             [1]: https://github.com/Kas-tle/java2bedrock.sh/actions/runs/${{ github.run_id}}
           reactions: 'rocket'
       - name: Close Issue
-        uses: peter-evans/close-issue@v2
+        uses: peter-evans/close-issue@v3
         with:
           issue-number: ${{ github.event.issue.number }}
 
@@ -156,7 +156,7 @@ jobs:
     steps:
       - name: Post Result
         id: post-result
-        uses: peter-evans/create-or-update-comment@v2
+        uses: peter-evans/create-or-update-comment@v4
         with:
           issue-number: ${{ github.event.issue.number }}
           body: |
@@ -172,6 +172,6 @@ jobs:
             [1]: https://github.com/Kas-tle/java2bedrock.sh/actions/runs/${{ github.run_id}}
           reactions: 'x'
       - name: Close Issue
-        uses: peter-evans/close-issue@v2
+        uses: peter-evans/close-issue@v3
         with:
           issue-number: ${{ github.event.issue.number }}
