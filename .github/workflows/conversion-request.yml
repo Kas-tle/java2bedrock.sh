@@ -58,17 +58,17 @@ jobs:
     outputs:
       run_id: ${{ steps.get-pack-info.outputs.pack_url }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Enable default asset cache
         id: cache-default-assets
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: /home/runner/work/java2bedrock.sh/java2bedrock.sh/staging/default_assets.zip
           key: ${{ runner.os }}-${{ needs.get-pack-info.outputs.default_assets_version }}
       - name: Install NodeJS
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 24
       - name: Fix APT sources and update
