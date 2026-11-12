@@ -169,7 +169,7 @@ jobs:
 
             If you believe this is an issue with the converter, please open a bug report. This issue will be closed automatically.
 
-            [1]: https://github.com/Kas-tle/java2bedrock.sh/actions/runs/${{ github.run_id}}
+            [1]: https://github.com/55max25/java2bedrock.sh/actions/runs/${{ github.run_id}}
           reactions: 'x'
       - name: Close Issue
         uses: peter-evans/close-issue@v3
