@@ -78,7 +78,8 @@ jobs:
           sudo apt-get update
       - name: Install dependencies
         run: |
-          sudo apt-get install -y --fix-missing moreutils zip imagemagick ghostscript
+          sudo apt-get install -y --fix-missing jq moreutils zip imagemagick ghostscript
+          jq --version
           yarn global add spritesheet-js
       - name: Convert Pack
         id: convert-pack
