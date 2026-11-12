@@ -78,9 +78,12 @@ jobs:
           sudo apt-get update
       - name: Install dependencies
         run: |
-          sudo apt-get install -y --fix-missing jq moreutils zip imagemagick ghostscript
+          sudo apt-get update
+          sudo apt-get install -y jq moreutils zip imagemagick ghostscript
+          echo "Checking jq..."
+          which jq
           jq --version
-          yarn global add spritesheet-js
+          npm install -g spritesheet-js
       - name: Convert Pack
         id: convert-pack
         continue-on-error: false
