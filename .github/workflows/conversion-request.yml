@@ -58,19 +58,19 @@ jobs:
     outputs:
       run_id: ${{ steps.get-pack-info.outputs.pack_url }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
       - name: Enable default asset cache
         id: cache-default-assets
-        uses: actions/cache@v3
+        uses: actions/cache@v5
         with:
           path: /home/runner/work/java2bedrock.sh/java2bedrock.sh/staging/default_assets.zip
           key: ${{ runner.os }}-${{ needs.get-pack-info.outputs.default_assets_version }}
       - name: Install NodeJS
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v5
         with:
-          node-version: 17
+          node-version: 20
       - name: Fix APT sources and update
         run: |
           sudo sed -i 's|mirror+file:/etc/apt/apt-mirrors.txt|http://archive.ubuntu.com/ubuntu|' /etc/apt/sources.list
@@ -78,9 +78,12 @@ jobs:
           sudo apt-get update
       - name: Install dependencies
         run: |
-          sudo apt-get install -y --fix-missing jq moreutils zip imagemagick ghostscript
+          sudo apt-get update
+          sudo apt-get install -y jq moreutils zip imagemagick ghostscript
+          echo "Checking jq..."
+          which jq
           jq --version
-          yarn global add spritesheet-js
+          npm install -g spritesheet-js
       - name: Convert Pack
         id: convert-pack
         continue-on-error: false
@@ -106,7 +109,7 @@ jobs:
           fi
           ./converter.sh input_pack.zip -w "false" -m ${MERGE_PACK_FILE} -a ${ATTACHABLE_MATERIAL} -b ${BLOCK_MATERIAL} -f ${DEFAULT_PACK_URL} -v ${DEFAULT_ASSETS_VERSION} -r ${RENAME_MODEL_FILES} -s ${ARCHIVE_SCRATCH} -u "true"
       - name: Upload converted pack
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: Pack Files
           path: |
@@ -125,7 +128,7 @@ jobs:
     steps:
       - name: Post Result
         id: post-result
-        uses: peter-evans/create-or-update-comment@v2
+        uses: peter-evans/create-or-update-comment@v4
         with:
           issue-number: ${{ github.event.issue.number }}
           body: |
@@ -139,7 +142,7 @@ jobs:
             [1]: https://github.com/Kas-tle/java2bedrock.sh/actions/runs/${{ github.run_id}}
           reactions: 'rocket'
       - name: Close Issue
-        uses: peter-evans/close-issue@v2
+        uses: peter-evans/close-issue@v3
         with:
           issue-number: ${{ github.event.issue.number }}
 
@@ -153,7 +156,7 @@ jobs:
     steps:
       - name: Post Result
         id: post-result
-        uses: peter-evans/create-or-update-comment@v2
+        uses: peter-evans/create-or-update-comment@v4
         with:
           issue-number: ${{ github.event.issue.number }}
           body: |
@@ -169,6 +172,6 @@ jobs:
             [1]: https://github.com/Kas-tle/java2bedrock.sh/actions/runs/${{ github.run_id}}
           reactions: 'x'
       - name: Close Issue
-        uses: peter-evans/close-issue@v2
+        uses: peter-evans/close-issue@v3
         with:
           issue-number: ${{ github.event.issue.number }}
